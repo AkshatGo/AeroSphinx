@@ -355,14 +355,20 @@ def persistence_forecast(
     value_column: str = "PM25",
     date_column: str = "Date",
     max_age_days: int | None = None,
+    periods: int = 1,
 ) -> np.ndarray:
     """Persistence prediction with an optional staleness allowance.
 
     With ``max_age_days=None`` this is the strict calendar-aware baseline:
-    the previous calendar day, or NaN where that day is absent.
+    the observation dated exactly ``periods`` calendar days before each
+    row, or NaN where that date is absent.
+
+    ``periods`` is what makes the baseline **horizon-appropriate**: a
+    day-5 forecast must be judged against the value observed 5 days
+    earlier, not the value observed yesterday.
 
     With ``max_age_days`` set, the most recent observation at or before the
-    previous calendar day is used, provided it is no more than
+    reference date is used, provided it is no more than
     ``max_age_days`` old. This is the operationally realistic variant - a
     forecaster would use the latest observation it has - and it is reported
     alongside the strict variant so the effect of the 123 calendar gaps on
@@ -370,16 +376,19 @@ def persistence_forecast(
     """
     from aerosphinx.features.lags import calendar_lag
 
+    if periods < 1:
+        raise ValueError("periods must be at least 1")
+
     if max_age_days is None:
-        return calendar_lag(frame, value_column, 1).to_numpy(dtype=float)
+        return calendar_lag(frame, value_column, periods).to_numpy(dtype=float)
 
     dates = pd.to_datetime(frame[date_column])
     values = pd.to_numeric(frame[value_column], errors="coerce")
 
     observed_index = pd.DatetimeIndex(dates)
     # For each target date, find the most recent observation at or before
-    # the *previous calendar day*, then apply the staleness limit.
-    targets = observed_index - pd.Timedelta(days=1)
+    # the reference date, then apply the staleness limit.
+    targets = observed_index - pd.Timedelta(days=periods)
     positions = observed_index.get_indexer(targets, method="ffill")
 
     predictions = np.full(len(frame), np.nan)

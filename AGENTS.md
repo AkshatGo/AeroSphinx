@@ -4,11 +4,12 @@ This file is the primary project instruction for any agent or engineer working
 on AeroSphinx. It governs the repository at
 <https://github.com/AkshatGo/AeroSphinx>.
 
-**Current phase: 2 complete (Track A features and baselines), awaiting
-approval to begin Phase 3.**
-See `docs/PHASE2_REPORT.md` for the backtest results,
-`docs/REPOSITORY_AUDIT.md` §10 for the prioritised findings, and
-`docs/DEFECT_REGISTER.md` for the full defect list.
+**Current phase: 3 in progress — Workstreams A, B and D complete;
+Workstream C (regime-conditional modelling) not started.**
+See `docs/PHASE3_PROTOCOL.md` (protocol and acceptance criteria),
+`docs/PHASE3_AUDIT.md` (audit of the Phase 2 evaluation and its two
+defects), and `docs/PHASE3_WORKSTREAM_{A,B,D}.md` for the completed
+workstreams.
 
 ---
 
@@ -106,6 +107,11 @@ All features must obey an explicit availability contract.
 - **Phase 1** — CPCB ingestion. *(complete)*
 - **Phase 2** — Track A feature engineering and baselines. *(complete)*
 - **Phase 3** — Track A forecasting and backtesting.
+  - **Phase 3 audit** — the Phase 2 evaluation audit and its two corrections. *(complete)*
+  - **Workstream A** — multi-horizon forecasting, days 1–5. *(complete)*
+  - **Workstream B** — cold-start and extrapolation diagnostics. *(complete)*
+  - **Workstream C** — regime-conditional modelling. *(not started)*
+  - **Workstream D** — CPCB station-local meteorology audit. *(complete)*
 - **Phase 4** — INSAT AOD validation.
 - **Phase 5** — MERRA-2 validation.
 - **Phase 6** — Multisource fusion and availability.
@@ -114,6 +120,35 @@ All features must obey an explicit availability contract.
 - **Phase 9** — CI, reproducibility and research reporting.
 
 **Never skip an acceptance gate.**
+
+### Phase 3 findings that bind later phases
+
+1. **The horizon-appropriate baseline changes the conclusion.** Against the
+   day-1 baseline the learned models look worse with horizon; against the
+   correct day-*h* baseline they are **better from day 2 onward**. Any
+   future forecast evaluation must use the horizon-appropriate persistence
+   value as its reference. (D-019, FIXED)
+
+2. **The naive bootstrap overstated the evidence.** Block-aware inference
+   and Holm correction change at least one published conclusion.
+   (D-018, FIXED)
+
+3. **Cold start is a coverage failure, not a bounding failure.** Tree
+   ensembles never predict outside their training range; they predict
+   *inside* it and are up to +71 µg/m³ too high. Range-based fallbacks do
+   not detect it (they fire 0 times); a regime-aware fallback does.
+   (Workstream B)
+
+4. **Station-local meteorology is genuine but not yet usable.** The nine
+   CPCB meteorological columns are confirmed hourly station-local
+   measurements (zero identical values against MERRA-2 in 516 matched
+   hours), but **no availability timestamp can be established**, so none is
+   forecast-usable. (Workstream D)
+
+5. **The project question has shifted.** Ground history alone beats
+   persistence from h=2, so an environmental feature group must add value
+   *on top of* an already-strong ground-history model — not merely lift a
+   day-1 model to parity with persistence.
 
 ### Phase 2 output (complete)
 

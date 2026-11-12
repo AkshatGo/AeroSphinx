@@ -30,6 +30,9 @@ Severity reflects scientific impact on the research claims, not code aesthetics.
 | D-014 Legacy pipelines absent from the worktree | Medium | **FIXED** | Phase 0 — `legacy/` |
 | D-015 CRLF line-ending conversion | Low | Documented, no action required | — |
 | D-016 Operational forecast extrapolates an upward drift | Low | OPEN | Phase 8 |
+| D-017 Baseline defect shrank the headline evaluation set | High | **FIXED** (Phase 3 audit) | `src/aerosphinx/models/baselines.py` |
+| D-018 Bootstrap overstated the effective sample size | High | **FIXED** (Phase 3 audit) | `src/aerosphinx/evaluation/block_inference.py` |
+| D-019 Horizon-appropriate baseline was not used | Critical | **FIXED** (Phase 3 Workstream A) | `src/aerosphinx/tracks/multi_horizon.py` |
 
 ---
 
@@ -599,6 +602,95 @@ covariates are available.
 
 ---
 
+## D-017 — A baseline defect silently shrank the headline evaluation set
+
+| | |
+|---|---|
+| **Severity** | High |
+| **Status** | **FIXED** (Phase 3 audit) |
+| **Location** | `src/aerosphinx/models/baselines.py`, `src/aerosphinx/tracks/track_a.py` |
+
+**Observed behaviour.** The Phase 2 headline set required *every* model,
+including the seasonal-naive baseline, to be defined. The baseline's
+climatology was built from the most recent year of the training block, and
+in the early folds the training block is one partial year, so it covered
+only 260 of 366 day-of-years. **409 rows were undefined for the baseline**
+and, because the set required all models to be defined, were removed from
+the evaluation of **every** model. 15 of 96 folds lost the baseline
+entirely.
+
+**Impact.** The evaluation set was 2,150 rows instead of 2,510, and the
+removed rows concentrated in exactly the early cold-start folds where the
+learned models fail hardest — **understating the cold-start problem**.
+
+**Resolution.** The headline set is now defined by the models under test; a
+baseline that cannot predict a row is scored as NaN there and reported as
+undefined rather than removing the row. `ClimatologyBuilder` additionally
+guarantees complete day-of-year coverage via a per-day-of-year fallback
+from older years and a nearest-day fill. Undefined seasonal predictions
+fell from 409 rows to 0, and 15 folds were restored.
+
+---
+
+## D-018 — The bootstrap overstated the effective sample size
+
+| | |
+|---|---|
+| **Severity** | High |
+| **Status** | **FIXED** (Phase 3 audit) |
+| **Location** | `src/aerosphinx/evaluation/block_inference.py` |
+
+**Observed behaviour.** The Phase 2 bootstrap resampled individual days,
+treating them as independent. Daily PM2.5 absolute errors have lag-1
+autocorrelation +0.31 and lag-30 +0.16, so the effective sample size is
+materially smaller than nominal. Folds are dependent too: test blocks are
+contiguous 30-day windows advancing 30 days, so adjacent folds test
+adjacent calendar periods and share nearly all their training history.
+
+**Impact.** The intervals were narrower than they should have been. **This
+changed a conclusion**: Random Forest versus persistence went from
+"significantly worse" (naive p = 0.032) to "not significantly different"
+under both moving-block and year-blocked inference, and the Holm-adjusted
+p is 0.095.
+
+**Resolution.** `block_inference.py` adds a moving-block bootstrap with a
+data-estimated block length, a year-blocked bootstrap, Holm-Bonferroni and
+Benjamini-Hochberg corrections, and a fold-level paired comparison. The
+block length is estimated from the *difference* series, which is correct for
+a paired comparison because the shared target autocorrelation cancels in
+the difference.
+
+---
+
+## D-019 — The forecast baseline was not horizon-appropriate
+
+| | |
+|---|---|
+| **Severity** | Critical |
+| **Status** | **FIXED** (Phase 3 Workstream A) |
+| **Location** | `src/aerosphinx/models/baselines.py`, `src/aerosphinx/tracks/multi_horizon.py` |
+
+**Observed behaviour.** The multi-horizon backtest compared a day-*h*
+forecast against the **day-1** persistence value. The correct baseline for
+a day-*h* forecast is the observation *h* calendar days earlier. The
+mismatch produced a misleading result: it made the learned models look
+consistently *worse* with horizon (delta +2.3 to +12.7), which reads as
+"learned models degrade and persistence holds up".
+
+**Impact.** The Phase 3 conclusion was inverted by this defect. Two
+diagnostics exposed it: the baseline's apparent error did not grow with
+horizon (it fell after h=2, which is impossible for a degrading
+baseline), and each horizon forecasts a different target date, so the
+comparison confounded horizon difficulty with target-date difficulty.
+
+**Resolution.** `persistence_forecast` gained a `periods` argument and the
+multi-horizon runner uses it. With the correct baseline the result
+reverses: the learned models beat persistence from **day 2 onward**, and
+the within-issue-date comparison confirms the effect on identical forecast
+origins.
+
+---
+
 ## Open questions requiring a decision (BLOCKED)
 
 | ID | Question | Why it is blocked |
@@ -612,6 +704,18 @@ covariates are available.
 | B-007 | What is the provenance of the root-level legacy CSV files (`aod_data_1..3.csv`, `combined_pm2.5_para*.csv`, `pm25_cpcb_05AM_*.csv`, `predicted_pm25_jan_to_dec_2019.csv`)? | The plan requires determining their provenance before moving or deleting them. They are preserved under `legacy/` unmodified so the question can be answered later from the data itself; answering it needs upstream context that is not in the repository. |
 | B-008 | Should the 124 Track A rows without a complete 1-day lag be dropped, or handled with gap-skipping lags? | Changes the usable Track A dataset size by roughly 4%. Phase 2 must choose and report the choice. |
 | B-009 | Should a day carrying a duplicated hour be excluded entirely, or resolved by a documented precedence rule? | No effect on the current record (no duplicate hours exist). Matters only if overlapping CPCB files are ever supplied. The current policy excludes the day. |
-| B-010 | Can the provenance and QA conventions of the CPCB export itself be established, particularly for the station-local meteorological columns? | Blocks the decision to use `AT`, `RH`, `WS`, `WD`, `RF`, `SR`, `BP` and `VWS` as Track A features, which are available across the full 2016-2024 record at ~99% completeness. Now higher priority: Track A shows ground history alone saturates at one-day horizon, so these are the most promising remaining source of signal. |
-| B-011 | Should the cold-start folds (2017) be reported as a headline result, or excluded as an unrepresentative warm-up? | Currently reported in full, with the mechanism quantified. Excluding them would flatter the learned models, so the honest default is to keep them. |
-| B-012 | Is a regime-conditional model - persistence in monsoon, a learned model otherwise - in scope? | The per-season table suggests it would beat either model alone, and it is the natural home for the availability-aware framework the plan proposes. |
+| B-010 | Can the provenance and QA conventions of the CPCB export itself be established, particularly for the station-local meteorological columns? | **PARTIALLY RESOLVED by the Phase 3 Workstream D audit.** The nine columns are confirmed genuine hourly station-local measurements, not reanalysis. What remains unknown is the **availability timestamp**, so none is forecast-usable yet. See B-021 and B-022. |
+| B-011 | Should the cold-start folds (2017) be reported as a headline result, or excluded as an unrepresentative warm-up? | **DECIDED: keep them.** All 96 folds are retained in every headline metric; in-range and extrapolating folds are reported as separate diagnostics. |
+| B-012 | Is a regime-conditional model - persistence in monsoon, a learned model otherwise - in scope? | **DECIDED: approved as an experiment, not as the primary model.** A regime-aware fallback was tested in Workstream B and is the only mitigation that worked; the validated routing belongs to Workstream C. |
+| B-013 | Should the regime split (winter/pre-monsoon vs the rest) be re-derived on validation folds? | Yes. The Workstream B split was derived from the Phase 2 per-season table, i.e. informed by the evaluation period, so it is an experiment establishing direction rather than a final configuration. |
+| B-014 | Is a continuous regime weighting better than a hard split? | Open. A blend of model and persistence by a season-dependent weight is the natural alternative to a hard split. |
+| B-015 | Can the cold-start *coverage* failure be addressed directly? | Open. The failure is that the tree ensembles cannot reach the low-pollution regime, so weighting the training set toward rare regimes is a candidate. |
+| B-016 | Does the regime-aware fallback still help at multi-day horizons? | **ANSWERED in Workstream A: no.** The learned models beat persistence from h=2 onward using ground history alone, so a persistence fallback would remove skill rather than add it. |
+| B-017 | Is the multi-horizon advantage driven by the calendar features or the PM2.5 history? | Open. An ablation would separate them and determines how hard the task facing environmental covariates is. |
+| B-018 | Should day-1 and multi-day use separate models? | Open. The day-1 result (persistence wins) and the h>=2 result (learned models win) point in opposite directions, so a single model across horizons is likely wrong. |
+| B-019 | Does the multi-horizon advantage survive the nine-year record's heterogeneity? | Open. The year-on-year MAE trend remains confounded with the measurement change identified in Phase 0. |
+| B-020 | Can recursive forecasting be salvaged with per-horizon damping? | Open. Recursion is pathological for XGBoost (h=5 MAE 53.91 against 34.41 direct). Direct forecasting is recommended meanwhile. |
+| B-021 | Does CPCB publish hourly data with a timestamp, and what is the publication latency relative to the observation hour? | **Blocks making the station-local columns forecast-usable.** This is a CPCB data-provenance question. |
+| B-022 | Is a declared one-hour publication lag acceptable for retrospective estimation, recorded as an assumption rather than a verified fact? | **Blocks the station-meteorology experiment.** Would make the nine audited columns usable retrospectively. |
+| B-023 | Which of the nine audited station-local variables carry genuine PM2.5 signal? | Open. An ablation over the audited set, as a retrospective experiment. |
+| B-024 | Should `BP` (22.4% missing) and `VWS` (43.3% missing) be excluded on completeness grounds before any modelling? | Open. Affects the station-local feature-group definition. |

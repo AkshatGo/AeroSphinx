@@ -4,9 +4,10 @@ This file is the primary project instruction for any agent or engineer working
 on AeroSphinx. It governs the repository at
 <https://github.com/AkshatGo/AeroSphinx>.
 
-**Current phase: 0 complete, awaiting approval to begin Phase 1.**
+**Current phase: 1 complete (Track A ingestion), awaiting approval to begin
+Phase 2.**
 See `docs/REPOSITORY_AUDIT.md` §10 for the prioritised findings that Phase 1
-must address, and `docs/DEFECT_REGISTER.md` for the full defect list.
+addressed, and `docs/DEFECT_REGISTER.md` for the full defect list.
 
 ---
 
@@ -101,7 +102,7 @@ All features must obey an explicit availability contract.
 ## 6. Implementation order
 
 - **Phase 0** — Repository audit and baseline preservation. *(complete)*
-- **Phase 1** — CPCB ingestion.
+- **Phase 1** — CPCB ingestion. *(complete)*
 - **Phase 2** — Track A feature engineering and baselines.
 - **Phase 3** — Track A forecasting and backtesting.
 - **Phase 4** — INSAT AOD validation.
@@ -112,6 +113,23 @@ All features must obey an explicit availability contract.
 - **Phase 9** — CI, reproducibility and research reporting.
 
 **Never skip an acceptance gate.**
+
+### Phase 1 output (complete)
+
+| Artefact | Path |
+|---|---|
+| CPCB ingestion | `src/aerosphinx/ingestion/cpcb.py` |
+| Calendar-aware temporal features | `src/aerosphinx/features/lags.py` |
+| Coverage and provenance | `src/aerosphinx/quality/` |
+| Track A dataset builder | `scripts/build_track_a_dataset.py` |
+| Validated daily series | `data/processed/track_a_daily.csv` |
+| Daily series with features | `data/processed/track_a_features.csv` |
+| Run manifest | `data/manifests/track_a_ingestion.json` |
+| Tests | `tests/unit/`, `tests/integration/` (40 tests) |
+
+The legacy `aerosphinx_pipeline.py` is retained unchanged as the Phase 0
+baseline and compatibility entry point. It is **not** the research package;
+Phase 2 onward work in `src/aerosphinx/`.
 
 ## 7. Repository preservation
 
@@ -188,14 +206,15 @@ or approval.
 
 These are VERIFIED and constrain the design of every later phase.
 
-1. **D-002 (Critical).** The shipped five-day "forecast" consumes future
-   observed AOD and MERRA-2 values. It is a retrospective estimation, not an
-   operational forecast. Any forecast interface must carry an explicit issue
-   timestamp and enforce an availability contract.
+1. **D-002 (Critical). — OPEN, Phase 8.** The shipped five-day "forecast"
+   consumes future observed AOD and MERRA-2 values. It is a retrospective
+   estimation, not an operational forecast. Any forecast interface must carry
+   an explicit issue timestamp and enforce an availability contract.
 
-2. **D-001 (Critical).** PM2.5 lags are row-based, so 123 rows carry a
-   `PM25_Lag_1` that is not the previous calendar day (worst case 25 days).
-   Phase 1 must build calendar-correct lags.
+2. **D-001 (Critical) — FIXED in Phase 1.** PM2.5 lags are now calendar-aware.
+   `src/aerosphinx/features/lags.py` reindexes onto the full calendar before
+   shifting, so 123 rows that previously carried a stale value (worst case 25
+   days old) now carry `NaN`. **Do not reintroduce row-based `shift()`.**
 
 3. **D-007 (High).** The fused ensemble does **not** beat the ground-only
    ablation (MAE 17.298 vs 16.617) and has R2 = 0.017. There is currently no

@@ -10,6 +10,27 @@ Machine-readable evidence: `results/baseline/data_audit.json`,
 
 Severity reflects scientific impact on the research claims, not code aesthetics.
 
+## Resolution status
+
+| Defect | Severity | Status | Resolved in |
+|---|---|---|---|
+| D-001 Row-based PM2.5 lags are not calendar-aware | Critical | **FIXED** | Phase 1 — `src/aerosphinx/features/lags.py` |
+| D-002 Forecast consumes future observed satellite/reanalysis data | Critical | OPEN | Phase 8 |
+| D-003 Forward-fill manufactures environmental observations | High | OPEN | Phase 6 |
+| D-004 27 INSAT granules contribute zero valid pixels | High | OPEN | Phase 4 |
+| D-005 Climatology baseline mis-specified | High | OPEN | Phase 2 |
+| D-006 Improvement over persistence not significant | High | OPEN | Phase 3 |
+| D-007 Fusion does not beat the ground-only ablation | High | OPEN (finding, not a code defect) | Phase 7 |
+| D-008 PBLH unavailable; `PBLTOP` fallback is a latent trap | Medium | OPEN | Phase 5 |
+| D-009 `Humidity_Ratio` mis-named and mis-defined | Medium | OPEN | Phase 5 |
+| D-010 MERRA-2 features are midday single-cell values | Medium | OPEN | Phase 5 |
+| D-011 Feature importance dominated by `month_sin` | Medium | OPEN | Phase 2 |
+| D-012 Duplicate CPCB source files | Medium | **FIXED** | Phase 0 — `legacy/`, `data/cpcb/` |
+| D-013 Mean-of-file-means aggregation is unsafe | Medium | **FIXED** | Phase 1 — `src/aerosphinx/ingestion/cpcb.py` |
+| D-014 Legacy pipelines absent from the worktree | Medium | **FIXED** | Phase 0 — `legacy/` |
+| D-015 CRLF line-ending conversion | Low | Documented, no action required | — |
+| D-016 Operational forecast extrapolates an upward drift | Low | OPEN | Phase 8 |
+
 ---
 
 ## D-001 — Row-based PM2.5 lags are not calendar-aware
@@ -44,6 +65,19 @@ staleness is visible to the model and to the reader.
 value in `PM25_Lag_1` equals the observation dated exactly one calendar day
 earlier, and that rows whose previous calendar day is missing carry `NaN`
 rather than a stale value.
+
+**Resolution applied (Phase 1).** `src/aerosphinx/features/lags.py` implements
+`calendar_lag`, `calendar_lags`, `calendar_rolling`, `calendar_rolling_stats`
+and `observation_age_days`. Every temporal feature reindexes onto the full
+calendar before shifting, so a missing date becomes an explicit `NaN` row
+rather than being bridged by a row-position shift. On the real record this
+changes **123 rows** from a stale value (mean 3.5 days old, worst case
+**25 days**) to `NaN`.
+
+Proof tests: `tests/unit/test_lags.py` (including
+`test_row_based_shift_would_have_been_wrong`, which pins the legacy defect so
+it cannot silently return) and
+`tests/integration/test_track_a_ingestion.py::test_calendar_aware_lag_rejects_stale_values`.
 
 ---
 
@@ -409,8 +443,8 @@ an aggregation test that asserts no hour is counted twice across input files.
 | | |
 |---|---|
 | **Severity** | Medium |
-| **Status** | VERIFIED (no effect on current data) |
-| **Location** | `aerosphinx_pipeline.py:245-257` (`load_cpcb_daily`) |
+| **Status** | **FIXED (Phase 1)** |
+| **Location** | `src/aerosphinx/ingestion/cpcb.py` → `aggregate_daily` |
 | **Evidence** | `results/baseline/data_audit.json` → `cpcb.mean_of_means_vs_hour_weighted_mismatch_days` |
 
 **Observed behaviour.** The loader aggregates each file to daily means
@@ -429,6 +463,18 @@ daily mean.
 **Proposed correction.** Aggregate at the hourly level across all files, then
 compute one daily mean per date. Keep the file-level provenance separately so
 the aggregation remains auditable.
+
+**Resolution applied (Phase 1).** `aggregate_daily` now pools every unique
+hourly observation across all files and computes one hourly-weighted mean per
+date. The result on the real record is **identical to the legacy output**
+(max absolute difference 0.0 over all 2,979 days), confirming the correction
+is behaviour-preserving on data whose files do not overlap — but it is now
+correct by construction rather than by accident of file layout.
+
+Proof tests: `tests/unit/test_cpcb_ingestion.py::test_daily_mean_is_hour_weighted_across_files`
+(a 20/4 hour split that the mean-of-file-means would score 55.0 and the
+hour-weighted mean scores 25.0) and
+`::test_aggregation_is_independent_of_file_split`.
 
 ---
 
@@ -532,3 +578,6 @@ covariates are available.
 | B-005 | Is the `.pbix`/PowerBI work part of the research record or an application artefact to be isolated? | Affects whether it belongs in `legacy/` or in a separate application area, per the plan's `pawanai-project` guidance. |
 | B-006 | What is the intended definition of "availability-aware" fallback behaviour? | The plan describes it conceptually but does not specify the fallback policy, so implementation would be speculative. |
 | B-007 | What is the provenance of the root-level legacy CSV files (`aod_data_1..3.csv`, `combined_pm2.5_para*.csv`, `pm25_cpcb_05AM_*.csv`, `predicted_pm25_jan_to_dec_2019.csv`)? | The plan requires determining their provenance before moving or deleting them. They are preserved under `legacy/` unmodified so the question can be answered later from the data itself; answering it needs upstream context that is not in the repository. |
+| B-008 | Should the 124 Track A rows without a complete 1-day lag be dropped, or handled with gap-skipping lags? | Changes the usable Track A dataset size by roughly 4%. Phase 2 must choose and report the choice. |
+| B-009 | Should a day carrying a duplicated hour be excluded entirely, or resolved by a documented precedence rule? | No effect on the current record (no duplicate hours exist). Matters only if overlapping CPCB files are ever supplied. The current policy excludes the day. |
+| B-010 | Can the provenance and QA conventions of the CPCB export itself be established, particularly for the station-local meteorological columns? | Blocks the decision to use `AT`, `RH`, `WS`, `WD`, `RF`, `SR`, `BP` and `VWS` as Track A features, which are available across the full 2016-2024 record at ~99% completeness. |

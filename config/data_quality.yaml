@@ -1,0 +1,54 @@
+# Data-quality rules applied during ingestion.
+#
+# Every rule below is applied at ingestion and recorded in the run manifest.
+# The audit output must record the reason for every rejected record.
+
+cpcb:
+  # Column resolution. The export has been seen with several spellings, so the
+  # PM2.5 column is located by name rather than by position.
+  timestamp_column: "Timestamp"
+  pm25_column_candidates:
+    - "PM2.5 (µg/m³)"
+    - "PM2.5 (ug/m3)"
+    - "PM25"
+
+  # Physical validity window for an hourly PM2.5 reading, in ug/m3.
+  # Values outside this range are treated as instrument faults and set to
+  # missing rather than clipped.
+  pm25_valid_min: 0.0
+  pm25_valid_max: 500.0
+
+  # A daily mean is accepted only when at least this many valid hourly
+  # readings are present. 18 of 24 hours = 75% coverage.
+  min_hours_per_day: 18
+
+  # Expected hours in a complete local day, used to report coverage.
+  expected_hours_per_day: 24
+
+  # Duplicate policy. CPCB files are partitioned by year, so the same
+  # timestamp should never appear twice. If it does, the duplicate is
+  # reported and the day is excluded from the daily mean rather than
+  # silently double-weighted.
+  duplicate_hour_policy: "exclude_day"
+
+  # Records with an unparseable timestamp are rejected and counted.
+  on_unparseable_timestamp: "reject"
+
+  # Hours are expected on the hour. Off-grid timestamps are flagged.
+  require_whole_hour: true
+
+insat_aod:
+  fill_value: -999.0
+  aod_valid_min: 0.0
+  aod_valid_max: 5.0
+  # Half-width of the square collocation window around the station.
+  collocation_window_deg: 0.25
+
+merra:
+  # Requested variables. PBLH is requested but is absent from every
+  # locally distributed granule; the loader must report that rather than
+  # substitute a proxy.
+  requested_variables: ["T2M", "TS", "QV2M", "U10M", "V10M", "SLP", "PBLH"]
+  # No fallbacks are permitted: PBLTOP is a pressure, not a boundary layer
+  # height, and substituting it would create an invalid feature.
+  fallbacks: {}

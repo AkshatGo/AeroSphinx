@@ -1,6 +1,4 @@
-# AeroSphinx — reproducibility package
-
-Code and data accompanying the book chapter
+# AeroSphinx — availability-aware multisource PM2.5 research platform
 
 > **A Multi-Source Machine Learning Framework for Satellite-Fused PM2.5 Estimation
 > and Five-Day Atmospheric Forecasting over Urban India**
@@ -8,21 +6,48 @@ Code and data accompanying the book chapter
 > Mathematics and Basic Sciences, NIIT University, NH-8, Delhi–Jaipur Highway,
 > Alwar, Neemrana, Rajasthan-301705, India
 
-Everything the chapter reports — Tables 1–4, Figures 3–7 and every metric in
-Section 6 — is produced by a single script from the raw files in `data/`.
-No number is hard-coded, and no value is copied from an earlier run.
+AeroSphinx is being rebuilt as **two independently evaluated research tracks**
+over a shared, evidence-first infrastructure:
+
+| Track | Question | Data |
+|---|---|---|
+| **A** | How far can historical ground measurements alone predict future PM2.5? | CPCB, 2016–2024 (2,979 daily days) |
+| **B** | Does satellite and meteorological information actually add value? | CPCB + INSAT-3D AOD + MERRA-2 |
+
+The current scientific position, established by the Phase 0 audit, is
+documented in `docs/RESEARCH_FINDINGS.md`. In short: the shipped baseline
+reproduces exactly (81/81 metrics) but **does not** demonstrate that fusion
+beats ground-only prediction, and its five-day "forecast" is a retrospective
+estimation rather than an operational forecast. Those are the open questions
+the two tracks exist to answer.
+
+> **Start here:** `AGENTS.md` (engineering contract) · `docs/REPOSITORY_AUDIT.md`
+> (audit) · `docs/DEFECT_REGISTER.md` (defects) · `docs/PHASE1_REPORT.md`
+> (Track A ingestion) · `docs/EXPERIMENT_PROTOCOL.md` (how experiments must
+> be run).
 
 ---
 
 ## Quick start
 
 ```bash
-python -m pip install -r requirements.txt
-python aerosphinx_pipeline.py
+make install-dev          # install the package and test dependencies
+make test                 # 40 tests
+make build-track-a        # build the Track A daily dataset and manifest
 ```
 
 Runtime is roughly two to four minutes on a standard laptop CPU. No GPU and no
 network access are required; all input files are local.
+
+### Legacy chapter pipeline
+
+The single-script pipeline that produced the book chapter's tables, figures
+and metrics is retained unchanged as the reproducibility baseline:
+
+```bash
+python -m pip install -r requirements.txt
+python aerosphinx_pipeline.py
+```
 
 Optional arguments:
 
@@ -56,14 +81,26 @@ never searched.
 ## Repository layout
 
 ```text
-aerosphinx_pipeline.py     Single reproducible entry point (all four layers)
-requirements.txt           Pinned minimum library versions
+AGENTS.md                  Research-engineering contract (read this first)
+config/                    Every scientific rule, in a file rather than in code
+  common.yaml              Paths, station, calendar conventions
+  data_quality.yaml        Quality rules applied during ingestion
+  track_a.yaml             Track A features, evaluation and baselines
+src/aerosphinx/            The research package
+  ingestion/cpcb.py        Validated CPCB daily series with a full audit trail
+  features/lags.py         Calendar-aware lags and rolling statistics
+  quality/                 Coverage analysis and run provenance
 data/cpcb/                 CPCB hourly PM2.5 exports, Faridabad, 2016-2024
 data/aod/                  INSAT-3D Imager L2G AOD V02R00 granules (HDF5)
 data/merra2/               MERRA-2 tavg1_2d_slv_Nx granules (NetCDF)
-results/                   Metrics, predictions, feature ranking, chapter tables
-figures/                   Figures 3-7 at 300 dpi
-models/                    Fitted Random Forest and XGBoost artifacts
+data/processed/            Derived datasets (Track A daily series + features)
+data/manifests/            Run manifests with Git SHA, env and input hashes
+scripts/                   Audit and dataset-build entry points
+tests/                     Unit and integration tests
+docs/                      Audit, defect register, data dictionary, protocol
+legacy/                    Preserved pre-Phase-0 experimental record
+results/ figures/ models/  Chapter outputs (legacy pipeline)
+aerosphinx_pipeline.py     Legacy single-script chapter pipeline (unchanged)
 ```
 
 ## What the script does

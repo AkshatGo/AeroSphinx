@@ -42,15 +42,23 @@ def estimate_block_length(
     values: np.ndarray,
     max_lag: int = 60,
     threshold: float = 0.05,
+    significance: float = 0.05,
 ) -> int:
     """Estimate the block length needed to break serial dependence.
 
-    The block length is the smallest lag from which the autocorrelation
-    stays below ``threshold`` for **all** subsequent lags examined. Taking
-    the *first* lag that happens to fall below the threshold would be
-    unstable: a single near-zero autocorrelation at lag 1, whether real or
-    by chance, would yield a block length of 1 and an interval that is no
-    wider than the naive one.
+    A lag is treated as *significantly* correlated when its sample
+    autocorrelation exceeds the threshold by more than the sampling noise
+    would explain. The sample autocorrelation of white noise is not zero:
+    with *n* observations its standard error is approximately
+    ``1/sqrt(n)``, so a fixed threshold of 0.05 flags roughly half the
+    lags of a genuinely independent series as "correlated" and produces an
+    absurdly long block.
+
+    The block length is therefore the smallest lag from which the
+    autocorrelation is **not significantly** different from zero for all
+    subsequent lags. Using "the last significant lag" rather than "the
+    first insignificant lag" keeps the block long enough to break the
+    dependence without being driven by a single noisy lag.
 
     Parameters
     ----------
@@ -59,7 +67,10 @@ def estimate_block_length(
     max_lag:
         Largest lag to examine.
     threshold:
-        Autocorrelation below which a lag is considered decorrelated.
+        Minimum |autocorrelation| for a lag to count as correlated.
+    significance:
+        Multiple-testing level for deciding whether an observed
+        autocorrelation exceeds sampling noise.
 
     Returns
     -------
@@ -68,19 +79,32 @@ def estimate_block_length(
     """
     values = np.asarray(values, dtype=float)
     n = values.size
-    if n < 10:
+    if n < 20:
         return 1
 
     series = pd.Series(values)
-    lags = range(1, min(max_lag, n // 2) + 1)
+    lags = list(range(1, min(max_lag, n // 2) + 1))
     autocorrelation = np.array(
         [series.autocorr(lag) for lag in lags], dtype=float
     )
     autocorrelation = np.nan_to_num(autocorrelation, nan=0.0)
 
-    # Walk backwards to the last lag that exceeds the threshold; the block
-    # length is one more than that.
-    above = np.flatnonzero(np.abs(autocorrelation) > threshold)
+    # Standard error of the sample autocorrelation under independence.
+    standard_error = 1.0 / np.sqrt(n)
+
+    # Bonferroni over the lags examined: a lag counts as correlated only if
+    # it exceeds the threshold AND exceeds the noise band.
+    noise_band = (
+        standard_error
+        * np.sqrt(2 * np.log(lags[-1] / significance))
+        if lags
+        else standard_error
+    )
+    significant = (np.abs(autocorrelation) > threshold) & (
+        np.abs(autocorrelation) > noise_band
+    )
+
+    above = np.flatnonzero(significant)
     if above.size == 0:
         return 1
     return int(above[-1] + 2)
@@ -393,6 +417,8 @@ def fold_level_comparison(
         )
 
     table = pd.DataFrame(rows)
+    # Summary columns are broadcast to every row so the table can be
+    # filtered without losing the consistency information.
     table["folds_a_better_fraction"] = float(table["a_better"].mean())
     table["significant_folds"] = int((table["delta"] < 0).sum())
     table["alpha"] = alpha

@@ -157,6 +157,15 @@ def main() -> int:
         result.cold_start.to_csv(out_dir / "cold_start.csv", index=False)
     if not result.fold_complete.empty:
         result.fold_complete.to_csv(out_dir / "fold_complete_metrics.csv", index=False)
+    if not result.block_inference.empty:
+        result.block_inference.to_csv(out_dir / "block_inference.csv", index=False)
+        print("\n      block-aware inference (moving-block and year-blocked):")
+        block_display = result.block_inference[
+            ["model", "delta_mae", "block_length_days", "block_ci_low",
+             "block_ci_high", "year_ci_low", "year_ci_high",
+             "p_holm", "folds_a_better"]
+        ]
+        print(block_display.to_string(index=False))
 
     # Seasonal and per-year breakdowns on the complete evaluation rows.
     model_columns = [
@@ -222,7 +231,7 @@ def main() -> int:
     )
     write_provenance(provenance, out_dir / "manifest.json")
 
-    print(f"[4/4] wrote {out_dir.relative_to(root)}/")
+    print(f"[4/4] wrote {_relative(out_dir, root)}/")
     return 0
 
 

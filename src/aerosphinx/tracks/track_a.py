@@ -28,7 +28,7 @@ import pandas as pd
 
 from aerosphinx.evaluation.metrics import evaluate
 from aerosphinx.evaluation.splits import Fold, rolling_origin_folds
-from aerosphinx.evaluation.uncertainty import compare_models
+from aerosphinx.evaluation.uncertainty import compare_models, paired_wilcoxon
 from aerosphinx.models.baselines import (
     PersistenceBaseline,
     SeasonalNaiveBaseline,
@@ -69,6 +69,7 @@ class TrackAResult:
     coverage: pd.DataFrame = field(default_factory=pd.DataFrame)
     cold_start: pd.DataFrame = field(default_factory=pd.DataFrame)
     fold_complete: pd.DataFrame = field(default_factory=pd.DataFrame)
+    block_inference: pd.DataFrame = field(default_factory=pd.DataFrame)
     metadata: dict = field(default_factory=dict)
 
     def as_dict(self) -> dict:
@@ -260,20 +261,64 @@ def run_track_a(
     predictions = pd.concat(prediction_rows, ignore_index=True)
     fold_metrics = pd.DataFrame(metric_rows)
 
-    # The headline evaluation set: rows where every compared model and the
-    # baseline are all defined, so every model is scored on identical rows.
+    # Model columns: every prediction series except the bookkeeping fields.
     model_columns = [
         c for c in predictions.columns
         if c not in ("Date", "Fold", "Target", "seasonal_lookback")
     ]
-    complete = predictions.dropna(subset=model_columns + ["Target"])
+
+    # The headline evaluation set is defined by the **models under test**,
+    # not by whether an auxiliary baseline happens to be able to predict.
+    #
+    # Phase 2 made this mistake: the seasonal-naive baseline was undefined
+    # on 409 rows (its climatology could not cover every day-of-year from a
+    # partial training year), and because the headline set required *every*
+    # model to be defined, those 409 rows were dropped from the evaluation
+    # of all models. That removed 20% of the set, concentrated in exactly
+    # the early cold-start folds where the learned models fail hardest.
+    #
+    # A baseline that cannot predict a row is now scored as NaN on that row
+    # and reported as undefined; it does not remove the row.
+    evaluated_models = [m for m in model_columns if m != "seasonal_naive"]
+    if evaluated_models:
+        complete = predictions.dropna(subset=evaluated_models + ["Target"])
+    else:
+        complete = predictions.dropna(subset=["Target"])
     complete = complete.reset_index(drop=True)
 
     aggregate_rows = []
     for model_name in model_columns:
-        scores = evaluate(complete["Target"].to_numpy(), complete[model_name].to_numpy())
+        # Each model is scored on the rows where *it* is defined. A model
+        # that cannot predict a row is reported with its own n, so an
+        # undefined baseline never silently removes a row from the other
+        # models' evaluation.
+        usable = complete.dropna(subset=[model_name])
+        scores = evaluate(usable["Target"].to_numpy(), usable[model_name].to_numpy())
+        scores["n_undefined"] = int(len(complete) - len(usable))
         aggregate_rows.append({"model": model_name, **scores})
     aggregate = pd.DataFrame(aggregate_rows)
+
+    # Paired comparisons are run on the rows where BOTH models are
+    # defined, so the pairing is exact.
+    comparison_rows = []
+    for model_name in model_columns:
+        usable = complete.dropna(subset=[model_name, baseline])
+        if usable.empty:
+            continue
+        comparison_rows.append(
+            {
+                "model": model_name,
+                "baseline": baseline,
+                "n_pairs": int(len(usable)),
+                "mae_model": float(
+                    np.abs(usable[model_name] - usable["Target"]).mean()
+                ),
+                "mae_baseline": float(
+                    np.abs(usable[baseline] - usable["Target"]).mean()
+                ),
+            }
+        )
+    comparison_frame = pd.DataFrame(comparison_rows)
 
     comparisons = compare_models(
         complete["Target"].to_numpy(),
@@ -296,6 +341,13 @@ def run_track_a(
     # is the set every model is judged on.
     fold_complete = _fold_complete_metrics(
         predictions, model_columns, target, baseline
+    )
+
+    # Block-aware inference (Phase 3 audit D-018). The naive day-level
+    # bootstrap treats serially correlated errors as independent and so
+    # understates the interval width.
+    block_results = _block_inference(
+        complete, model_columns, baseline, target, alpha, seed, bootstrap_samples
     )
 
     metadata = {
@@ -334,8 +386,117 @@ def run_track_a(
         coverage=coverage,
         cold_start=cold_start,
         fold_complete=fold_complete,
+        block_inference=block_results,
         metadata=metadata,
     )
+
+
+def _block_inference(
+    complete: pd.DataFrame,
+    model_columns: list[str],
+    baseline: str,
+    target: str,
+    alpha: float,
+    seed: int,
+    bootstrap_samples: int,
+) -> pd.DataFrame:
+    """Block-aware and fold-level inference for every model comparison.
+
+    Three complementary views are produced:
+
+    * a **moving-block bootstrap** interval, which preserves the serial
+      correlation of daily errors;
+    * a **year-blocked** interval, the most conservative structure
+      available (whole calendar years resampled as units);
+    * a **fold-level** comparison, which shows whether the sign of the
+      difference is consistent across folds.
+
+    A **Holm-Bonferroni** correction is applied across the family of
+    comparisons, because Phase 3 compares many models and reporting
+    uncorrected p-values for a family of tests overstates the number of
+    apparent findings.
+    """
+    from aerosphinx.evaluation.block_inference import (
+        apply_correction,
+        fold_level_comparison,
+        moving_block_bootstrap_ci,
+        year_blocked_bootstrap_ci,
+    )
+
+    rows = []
+    for model_name in model_columns:
+        usable = complete.dropna(subset=[model_name, baseline])
+        if usable.empty:
+            continue
+        # The predictions frame stores the target under "Target".
+        y = usable["Target"].to_numpy()
+        a = usable[model_name].to_numpy()
+        b = usable[baseline].to_numpy()
+        dates = usable["Date"]
+
+        block = moving_block_bootstrap_ci(
+            y, a, b, dates=dates, n_samples=bootstrap_samples,
+            alpha=alpha, seed=seed,
+        )
+        year_block = year_blocked_bootstrap_ci(
+            y, a, b, dates=dates, n_samples=bootstrap_samples,
+            alpha=alpha, seed=seed,
+        )
+        fold_level = fold_level_comparison(y, a, b, usable["Fold"].to_numpy(), alpha)
+
+        rows.append(
+            {
+                "model": model_name,
+                "baseline": baseline,
+                "n_pairs": int(len(usable)),
+                "delta_mae": block["delta"],
+                "block_length_days": block["block_length"],
+                "block_ci_low": block["ci_low"],
+                "block_ci_high": block["ci_high"],
+                "block_significant": block["significant"],
+                "year_ci_low": year_block["ci_low"],
+                "year_ci_high": year_block["ci_high"],
+                "year_significant": year_block["significant"],
+                "n_years": year_block.get("n_years", 0),
+                "fold_fractions_a_better": float(
+                    fold_level["folds_a_better_fraction"].iloc[0]
+                ) if not fold_level.empty else float("nan"),
+                "folds_a_better": int(
+                    fold_level["significant_folds"].iloc[0]
+                ) if not fold_level.empty else 0,
+                "n_folds": int(len(fold_level)),
+            }
+        )
+
+    if not rows:
+        return pd.DataFrame()
+
+    table = pd.DataFrame(rows)
+
+    # Multiple-comparison correction across the family. The naive (day-level)
+    # p-value is carried across from the paired test for the correction.
+    naive_p = []
+    for model_name in model_columns:
+        usable = complete.dropna(subset=[model_name, baseline])
+        if usable.empty:
+            naive_p.append(np.nan)
+            continue
+        test = paired_wilcoxon(
+            usable["Target"].to_numpy(),
+            usable[model_name].to_numpy(),
+            usable[baseline].to_numpy(),
+        )
+        naive_p.append(test["pvalue"])
+
+    correction = apply_correction(np.array(naive_p, dtype=float), alpha=alpha)
+    table["p_value"] = correction["p_value"].to_numpy()
+    table["p_holm"] = correction["p_holm"].to_numpy()
+    table["p_benjamini_hochberg"] = correction["p_benjamini_hochberg"].to_numpy()
+    table["significant_holm"] = correction["significant_holm"].to_numpy()
+    table["significant_bh"] = correction["significant_bh"].to_numpy()
+    table["n_comparisons"] = correction["n_comparisons"].to_numpy()
+
+    return table
 
 
 def _fold_complete_metrics(

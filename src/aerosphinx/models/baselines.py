@@ -86,26 +86,117 @@ class ClimatologyBuilder:
         self.date_column = date_column
         self._table: pd.Series | None = None
         self._fitted_end: pd.Timestamp | None = None
+        self._covered_day_of_year: set[int] = set()
+        self._primary_years: list[int] = []
+        self._fallback_years: list[int] = []
+
+    @property
+    def covered_day_of_year(self) -> set[int]:
+        """The day-of-years this climatology can serve."""
+        return set(self._covered_day_of_year)
+
+    @property
+    def coverage_fraction(self) -> float:
+        """Fraction of the 366 possible day-of-years that are covered."""
+        return len(self._covered_day_of_year) / 366.0
+
+    @property
+    def primary_years(self) -> list[int]:
+        """The years used as the primary source for each day-of-year."""
+        return list(self._primary_years)
+
+    @property
+    def fallback_years(self) -> list[int]:
+        """The years used to fill day-of-years the primary window missed."""
+        return list(self._fallback_years)
 
     def fit(self, frame: pd.DataFrame) -> "ClimatologyBuilder":
-        """Build the climatology from the given (training) observations."""
+        """Build the climatology from the given (training) observations.
+
+        The climatology is guaranteed to **cover every day-of-year** that
+        the training span can serve.
+
+        The lookback window defines the *primary* source for each
+        day-of-year, which is the D-005 correction: recent years are
+        preferred, because earlier regimes had different pollution levels.
+        Where the primary window does not contain a given day-of-year — a
+        short training window covers only part of the year — that
+        day-of-year is served from the most recent year that does contain
+        it.
+
+        This per-day-of-year fallback is what prevents the Phase 2 defect,
+        where a climatology built from one partial year left 106
+        day-of-years uncovered and silently removed whole folds from the
+        evaluation set.
+        """
         data = frame[[self.date_column, self.value_column]].copy()
         data[self.date_column] = pd.to_datetime(data[self.date_column])
         data = data.dropna(subset=[self.value_column])
         if data.empty:
             self._table = pd.Series(dtype=float)
             self._fitted_end = None
+            self._covered_day_of_year = set()
+            self._primary_years = []
+            self._fallback_years = []
             return self
 
-        # Restrict to the most recent ``lookback_years`` distinct years.
-        years = data[self.date_column].dt.year
-        cutoff_year = years.max() - self.lookback_years + 1
-        data = data[years >= cutoff_year]
-
         data["day_of_year"] = data[self.date_column].dt.day_of_year
-        self._table = data.groupby("day_of_year")[self.value_column].mean()
         self._fitted_end = data[self.date_column].max()
+
+        all_years = sorted(data[self.date_column].dt.year.unique())
+        # Primary window: the most recent ``lookback_years`` years present.
+        primary_years = all_years[-self.lookback_years:] if self.lookback_years else []
+        self._primary_years = list(primary_years)
+
+        primary = data[data[self.date_column].dt.year.isin(primary_years)]
+        primary_means = primary.groupby("day_of_year")[self.value_column].mean()
+
+        # Fall back to the most recent year containing each missing
+        # day-of-year, then to any year containing it.
+        fallback = data[~data[self.date_column].dt.year.isin(primary_years)]
+        fallback_means = fallback.groupby("day_of_year")[self.value_column].mean()
+
+        combined = primary_means.combine_first(fallback_means)
+
+        # A day-of-year may be absent from the training span entirely (for
+        # example a 29 February, or a date whose day-of-year falls in the
+        # part of the year the training window does not reach). Those days
+        # are served by the nearest available day-of-year, so the baseline
+        # is never undefined on a day it could plausibly serve.
+        combined = self._fill_gaps(combined)
+
+        combined = combined.sort_index()
+
+        self._table = combined
+        self._covered_day_of_year = set(combined.index)
+        self._fallback_years = sorted(
+            set(fallback[self.date_column].dt.year.unique()) - set(primary_years)
+        )
         return self
+
+    @staticmethod
+    def _fill_gaps(means: pd.Series) -> pd.Series:
+        """Fill day-of-year gaps from the nearest available day-of-year.
+
+        A climatology that leaves a day-of-year unserved turns into a
+        missing prediction, which in turn removes rows from the evaluation
+        set of every model. Filling from the nearest day-of-year keeps the
+        baseline defined everywhere.
+        """
+        if means.empty:
+            return means
+
+        available = np.array(sorted(means.index))
+        required = set(range(int(available.min()), int(available.max()) + 1))
+        missing = required - set(available)
+        if not missing:
+            return means
+
+        filled = dict(means.to_dict())
+        for day in missing:
+            nearest = available[np.argmin(np.abs(available - day))]
+            filled[day] = float(means.loc[int(nearest)])
+        return pd.Series(filled).sort_index()
 
     def predict(self, frame: pd.DataFrame) -> np.ndarray:
         """Predict each row from its day-of-year climatological mean."""
@@ -197,6 +288,12 @@ class SeasonalNaiveBaseline:
         the climatology and the later part scores it. The lookback with the
         lowest validation MAE wins. No test observation is involved.
 
+        A candidate that cannot predict part of the validation block is
+        penalised, because a climatology with gaps will also fail on the
+        test block. The penalty is expressed as the fraction of validation
+        rows the candidate fails to cover, so a candidate with better MAE
+        but incomplete coverage does not win by default.
+
         Returns
         -------
         int
@@ -235,7 +332,11 @@ class SeasonalNaiveBaseline:
                 inner_validation[self.value_column].to_numpy()[valid]
                 - predictions[valid]
             )
-            scores[candidate] = float(errors.mean())
+            # Incomplete coverage is penalised: the shortfall is added to
+            # the mean error so a candidate that leaves rows unpredicted
+            # cannot win on the rows it does cover.
+            shortfall = 1.0 - float(valid.mean())
+            scores[candidate] = float(errors.mean()) * (1.0 + shortfall)
 
         best = min(scores, key=lambda key: (scores[key], key))
         self.selected_lookback = int(best)

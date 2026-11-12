@@ -23,7 +23,7 @@ Severity reflects scientific impact on the research claims, not code aesthetics.
 | D-007 Fusion does not beat the ground-only ablation | High | OPEN (finding, not a code defect) | Phase 7 |
 | D-008 PBLH unavailable; `PBLTOP` fallback is a latent trap | Medium | OPEN | Phase 5 |
 | D-009 `Humidity_Ratio` mis-named and mis-defined | Medium | OPEN | Phase 5 |
-| D-010 MERRA-2 features are midday single-cell values | Medium | OPEN | Phase 5 |
+| D-010 MERRA-2 features are midday single-cell values | Medium | **PARTIALLY FIXED** (Phase 3 Workstream C) | `src/aerosphinx/ingestion/merra.py` |
 | D-011 Feature importance dominated by `month_sin` | Medium | **PARTIALLY ADDRESSED** (Phase 2) | `docs/PHASE2_REPORT.md` |
 | D-012 Duplicate CPCB source files | Medium | **FIXED** | Phase 0 — `legacy/`, `data/cpcb/` |
 | D-013 Mean-of-file-means aggregation is unsafe | Medium | **FIXED** | Phase 1 — `src/aerosphinx/ingestion/cpcb.py` |
@@ -418,6 +418,14 @@ midday-window single-cell values, or re-subset MERRA-2 with full 24-hour
 coverage and a deliberate collocation box. Either way, correct the docstring
 and the feature descriptions, and quantify the grid-point offset.
 
+**Resolution (Phase 3 Workstream C, naming half).** The extraction now lives
+in `src/aerosphinx/ingestion/merra.py` and every variable carries a
+`_midday` suffix, because that is what the value is: the mean over the three
+hourly timesteps the distributed granules contain (11:30, 12:30, 13:30 UTC)
+at a single 1x1 grid cell. The misleading docstrings are gone and the
+provenance is recorded in the run manifest. The re-subsetting with full
+temporal coverage remains Phase 5 work.
+
 ---
 
 ## D-011 — Feature importance is dominated by the month term
@@ -707,15 +715,15 @@ origins.
 | B-010 | Can the provenance and QA conventions of the CPCB export itself be established, particularly for the station-local meteorological columns? | **PARTIALLY RESOLVED by the Phase 3 Workstream D audit.** The nine columns are confirmed genuine hourly station-local measurements, not reanalysis. What remains unknown is the **availability timestamp**, so none is forecast-usable yet. See B-021 and B-022. |
 | B-011 | Should the cold-start folds (2017) be reported as a headline result, or excluded as an unrepresentative warm-up? | **DECIDED: keep them.** All 96 folds are retained in every headline metric; in-range and extrapolating folds are reported as separate diagnostics. |
 | B-012 | Is a regime-conditional model - persistence in monsoon, a learned model otherwise - in scope? | **DECIDED: approved as an experiment, not as the primary model.** A regime-aware fallback was tested in Workstream B and is the only mitigation that worked; the validated routing belongs to Workstream C. |
-| B-013 | Should the regime split (winter/pre-monsoon vs the rest) be re-derived on validation folds? | Yes. The Workstream B split was derived from the Phase 2 per-season table, i.e. informed by the evaluation period, so it is an experiment establishing direction rather than a final configuration. |
+| B-013 | Should the regime split (winter/pre-monsoon vs the rest) be re-derived on validation folds? | **ANSWERED in Workstream C.** The routing architecture's regime assignment is calendar-only and its specialists are selected on validation folds with a minimum-sample threshold. The seasonal *split* itself is a fixed calendar definition, not a fitted parameter, so it does not require re-derivation. |
 | B-014 | Is a continuous regime weighting better than a hard split? | Open. A blend of model and persistence by a season-dependent weight is the natural alternative to a hard split. |
 | B-015 | Can the cold-start *coverage* failure be addressed directly? | Open. The failure is that the tree ensembles cannot reach the low-pollution regime, so weighting the training set toward rare regimes is a candidate. |
 | B-016 | Does the regime-aware fallback still help at multi-day horizons? | **ANSWERED in Workstream A: no.** The learned models beat persistence from h=2 onward using ground history alone, so a persistence fallback would remove skill rather than add it. |
 | B-017 | Is the multi-horizon advantage driven by the calendar features or the PM2.5 history? | Open. An ablation would separate them and determines how hard the task facing environmental covariates is. |
-| B-018 | Should day-1 and multi-day use separate models? | Open. The day-1 result (persistence wins) and the h>=2 result (learned models win) point in opposite directions, so a single model across horizons is likely wrong. |
+| B-018 | Should day-1 and multi-day use separate models? | **PARTIALLY ANSWERED in Workstream C.** The shared multi-horizon model wins at h=2, 4 and 5; the regime-conditioned models win at h=1 and h=3. A single shared model is not optimal, and the selection is made per horizon. |
 | B-019 | Does the multi-horizon advantage survive the nine-year record's heterogeneity? | Open. The year-on-year MAE trend remains confounded with the measurement change identified in Phase 0. |
-| B-020 | Can recursive forecasting be salvaged with per-horizon damping? | Open. Recursion is pathological for XGBoost (h=5 MAE 53.91 against 34.41 direct). Direct forecasting is recommended meanwhile. |
-| B-021 | Does CPCB publish hourly data with a timestamp, and what is the publication latency relative to the observation hour? | **Blocks making the station-local columns forecast-usable.** This is a CPCB data-provenance question. |
-| B-022 | Is a declared one-hour publication lag acceptable for retrospective estimation, recorded as an assumption rather than a verified fact? | **Blocks the station-meteorology experiment.** Would make the nine audited columns usable retrospectively. |
-| B-023 | Which of the nine audited station-local variables carry genuine PM2.5 signal? | Open. An ablation over the audited set, as a retrospective experiment. |
-| B-024 | Should `BP` (22.4% missing) and `VWS` (43.3% missing) be excluded on completeness grounds before any modelling? | Open. Affects the station-local feature-group definition. |
+| B-020 | Can recursive forecasting be salvaged with per-horizon damping? | **ANSWERED in Workstream C: no.** Direct beats recursive at every horizon beyond 1; the recursive model degrades from MAE 24.57 to 66.93 against the direct model's 36.24 at h=5. |
+| B-021 | Does CPCB publish hourly data with a timestamp, and what is the publication latency relative to the observation hour? | **Blocks making the station-local columns forecast-usable.** This is a CPCB data-provenance question. The columns are preserved, retrospective-only, until answered. |
+| B-022 | Is a declared one-hour publication lag acceptable for retrospective estimation, recorded as an assumption rather than a verified fact? | **DECIDED: retrospective-only.** The Phase 3 authorisation ruled that no publication lag may be assumed and no availability timestamp may be fabricated. |
+| B-023 | Which of the nine audited station-local variables carry genuine PM2.5 signal? | **ANSWERED in Workstream C: none, as a group.** The nine-column group is better in 7 of 25 direct comparisons and worse in 18, with 0 significantly better after Holm correction. Individual columns remain untested (B-029). |
+| B-024 | Should `BP` (22.4% missing) and `VWS` (43.3% missing) be excluded on completeness grounds before any modelling? | Open. The group was tested as a whole; see B-032. |

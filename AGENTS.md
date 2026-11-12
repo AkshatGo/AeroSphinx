@@ -4,12 +4,10 @@ This file is the primary project instruction for any agent or engineer working
 on AeroSphinx. It governs the repository at
 <https://github.com/AkshatGo/AeroSphinx>.
 
-**Current phase: 3 in progress — Workstreams A, B and D complete;
-Workstream C (regime-conditional modelling) not started.**
+**Current phase: 3 complete — Workstreams A, B, C and D all done.**
 See `docs/PHASE3_PROTOCOL.md` (protocol and acceptance criteria),
 `docs/PHASE3_AUDIT.md` (audit of the Phase 2 evaluation and its two
-defects), and `docs/PHASE3_WORKSTREAM_{A,B,D}.md` for the completed
-workstreams.
+defects), and `docs/PHASE3_WORKSTREAM_{A,B,C,D}.md` for the workstreams.
 
 ---
 
@@ -106,11 +104,11 @@ All features must obey an explicit availability contract.
 - **Phase 0** — Repository audit and baseline preservation. *(complete)*
 - **Phase 1** — CPCB ingestion. *(complete)*
 - **Phase 2** — Track A feature engineering and baselines. *(complete)*
-- **Phase 3** — Track A forecasting and backtesting.
+- **Phase 3** — Track A forecasting and backtesting. *(complete)*
   - **Phase 3 audit** — the Phase 2 evaluation audit and its two corrections. *(complete)*
   - **Workstream A** — multi-horizon forecasting, days 1–5. *(complete)*
   - **Workstream B** — cold-start and extrapolation diagnostics. *(complete)*
-  - **Workstream C** — regime-conditional modelling. *(not started)*
+  - **Workstream C** — regime-conditional modelling, ablation, routing. *(complete)*
   - **Workstream D** — CPCB station-local meteorology audit. *(complete)*
 - **Phase 4** — INSAT AOD validation.
 - **Phase 5** — MERRA-2 validation.
@@ -149,6 +147,22 @@ All features must obey an explicit availability contract.
    persistence from h=2, so an environmental feature group must add value
    *on top of* an already-strong ground-history model — not merely lift a
    day-1 model to parity with persistence.
+
+6. **Station-local meteorology does not add value.** In the direct method
+   the nine audited CPCB meteorological columns are better in 7 of 25
+   comparisons and worse in 18, with 0 significantly better. After Holm
+   correction across 50 comparisons, nothing survives. **Track B's first
+   real test is negative.** (Workstream C)
+
+7. **Regime conditioning does help, and the mechanism is seasonal.** Every
+   regime-aware or multi-horizon architecture beats the plain global model
+   at every horizon by 1.4–3.4 µg/m³. Skill is strongly season-dependent:
+   large gains in post-monsoon, large losses in winter. (Workstream C)
+
+8. **The availability contract is executable.** `assert_operational_contract`
+   refuses an operational feature set containing a retrospective-only
+   group. The nine station columns are preserved, retrospective-only, with
+   no publication lag assumed. (Workstream C)
 
 ### Phase 2 output (complete)
 

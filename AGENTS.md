@@ -4,10 +4,11 @@ This file is the primary project instruction for any agent or engineer working
 on AeroSphinx. It governs the repository at
 <https://github.com/AkshatGo/AeroSphinx>.
 
-**Current phase: 1 complete (Track A ingestion), awaiting approval to begin
-Phase 2.**
-See `docs/REPOSITORY_AUDIT.md` §10 for the prioritised findings that Phase 1
-addressed, and `docs/DEFECT_REGISTER.md` for the full defect list.
+**Current phase: 2 complete (Track A features and baselines), awaiting
+approval to begin Phase 3.**
+See `docs/PHASE2_REPORT.md` for the backtest results,
+`docs/REPOSITORY_AUDIT.md` §10 for the prioritised findings, and
+`docs/DEFECT_REGISTER.md` for the full defect list.
 
 ---
 
@@ -103,7 +104,7 @@ All features must obey an explicit availability contract.
 
 - **Phase 0** — Repository audit and baseline preservation. *(complete)*
 - **Phase 1** — CPCB ingestion. *(complete)*
-- **Phase 2** — Track A feature engineering and baselines.
+- **Phase 2** — Track A feature engineering and baselines. *(complete)*
 - **Phase 3** — Track A forecasting and backtesting.
 - **Phase 4** — INSAT AOD validation.
 - **Phase 5** — MERRA-2 validation.
@@ -113,6 +114,26 @@ All features must obey an explicit availability contract.
 - **Phase 9** — CI, reproducibility and research reporting.
 
 **Never skip an acceptance gate.**
+
+### Phase 2 output (complete)
+
+| Artefact | Path |
+|---|---|
+| Metrics (incl. AQI category) | `src/aerosphinx/evaluation/metrics.py` |
+| Rolling-origin splits | `src/aerosphinx/evaluation/splits.py` |
+| Paired uncertainty | `src/aerosphinx/evaluation/uncertainty.py` |
+| Baselines | `src/aerosphinx/models/baselines.py` |
+| Supervised models | `src/aerosphinx/models/supervised.py` |
+| Regime diagnostics | `src/aerosphinx/tracks/diagnostics.py` |
+| Track A runner | `src/aerosphinx/tracks/track_a.py` |
+| CLI | `scripts/run_track_a.py` |
+| Results | `results/runs/<run_id>/` |
+| Tests | 86 total across `tests/unit/` and `tests/integration/` |
+
+**Phase 2 headline: no learned model significantly beats persistence at
+one-day horizon over the full nine-year record.** Random Forest matches it
+(delta -0.013, p = 0.86). The learned models *do* beat persistence in
+pre-monsoon and winter. See `docs/PHASE2_REPORT.md`.
 
 ### Phase 1 output (complete)
 
@@ -221,9 +242,12 @@ These are VERIFIED and constrain the design of every later phase.
    evidence that multisource information adds value. Track B must be framed as
    an open experiment, not a demonstration.
 
-4. **D-006 (High).** The improvement over persistence is not statistically
-   significant (paired Wilcoxon p = 0.1495; bootstrap 95% CI
-   [-6.47, +1.39]). Headline metrics must be published with uncertainty.
+4. **D-006 (High) — ADDRESSED in Phase 2.** Every comparison now carries a
+   paired test, a bootstrap interval and an explicit verdict. The extended
+   finding: on the full nine-year record, **no learned model significantly
+   beats persistence** at one-day horizon (RF matches it, delta -0.013,
+   p = 0.86). **Do not claim a model beats persistence without an interval
+   that excludes zero.**
 
 5. **D-003 (High).** Forward-filling silently manufactures environmental
    observations (7 AOD rows, 1 MERRA-2 row in the shipped frame). Phase 6 must
@@ -241,12 +265,19 @@ These are VERIFIED and constrain the design of every later phase.
 
 8. **Data heterogeneity.** The CPCB record changes character between 2016 and
    2023 (integer-valued readings fall from 96.1% to 0.3%). Any Track A model
-   spanning the full record must account for this.
+   spanning the full record must account for this. **Phase 3 must test for
+   distribution shift** before interpreting the year-on-year MAE trend.
 
 9. **Track A has 18x more data available than the fused frame.** CPCB spans
    9 years and 2,979 accepted daily days; the fused frame is 166 rows over
    six months of one year. Track A is the stronger foundation and should be
    built first.
+
+10. **Cold-start asymmetry (Phase 2).** Tree ensembles cannot predict
+    outside their training target range; persistence can. On the 8 of 96
+    folds that require extrapolation, Random Forest is +17.11 ug/m3 worse
+    than persistence and XGBoost +25.25. This is a property of the problem,
+    not a bug, and it must be reported wherever tree models are evaluated.
 
 ---
 

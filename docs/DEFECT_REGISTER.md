@@ -18,13 +18,13 @@ Severity reflects scientific impact on the research claims, not code aesthetics.
 | D-002 Forecast consumes future observed satellite/reanalysis data | Critical | OPEN | Phase 8 |
 | D-003 Forward-fill manufactures environmental observations | High | OPEN | Phase 6 |
 | D-004 27 INSAT granules contribute zero valid pixels | High | OPEN | Phase 4 |
-| D-005 Climatology baseline mis-specified | High | OPEN | Phase 2 |
-| D-006 Improvement over persistence not significant | High | OPEN | Phase 3 |
+| D-005 Climatology baseline mis-specified | High | **FIXED** (Phase 2) | `src/aerosphinx/models/baselines.py` |
+| D-006 Improvement over persistence not significant | High | **ADDRESSED** (Phase 2) | `src/aerosphinx/evaluation/uncertainty.py` |
 | D-007 Fusion does not beat the ground-only ablation | High | OPEN (finding, not a code defect) | Phase 7 |
 | D-008 PBLH unavailable; `PBLTOP` fallback is a latent trap | Medium | OPEN | Phase 5 |
 | D-009 `Humidity_Ratio` mis-named and mis-defined | Medium | OPEN | Phase 5 |
 | D-010 MERRA-2 features are midday single-cell values | Medium | OPEN | Phase 5 |
-| D-011 Feature importance dominated by `month_sin` | Medium | OPEN | Phase 2 |
+| D-011 Feature importance dominated by `month_sin` | Medium | **PARTIALLY ADDRESSED** (Phase 2) | `docs/PHASE2_REPORT.md` |
 | D-012 Duplicate CPCB source files | Medium | **FIXED** | Phase 0 — `legacy/`, `data/cpcb/` |
 | D-013 Mean-of-file-means aggregation is unsafe | Medium | **FIXED** | Phase 1 — `src/aerosphinx/ingestion/cpcb.py` |
 | D-014 Legacy pipelines absent from the worktree | Medium | **FIXED** | Phase 0 — `legacy/` |
@@ -226,6 +226,22 @@ available years only (or use a quantile-matched climatology), and report the
 baseline's own bias so that a shared systematic offset cannot hide inside a
 relative comparison.
 
+**Resolution applied (Phase 2).** `ClimatologyBuilder` restricts the
+climatology to a configurable lookback window and reports its own fitted
+range. `SeasonalNaiveBaseline.select_lookback` chooses the lookback **per
+fold on an inner validation block** carved from the training data, so no test
+observation influences the choice; the selected lookback moves from 1 year in
+the early folds to 9 years later as the expanding window makes longer
+histories available.
+
+The baseline's own bias is now reported alongside its metrics. With fair
+tuning the seasonal baseline improves (MAE 38.08 to 37.24 over the 96-fold
+backtest) but remains **significantly worse than persistence** (delta
++15.83 ug/m3, p = 9.1e-87), with a residual bias of +3.75 ug/m3. So the
+defect was real and is corrected, but the correction does not rescue the
+baseline: a day-of-year climatology cannot predict day-to-day variability in
+Delhi-NCR PM2.5.
+
 ---
 
 ## D-006 — The reported improvement over persistence is not statistically significant
@@ -253,6 +269,22 @@ significant improvement merely because one MAE is numerically smaller".
 **Proposed correction.** Publish the paired test and bootstrap interval
 alongside every headline metric. Do not describe the ensemble as beating
 persistence until the interval excludes zero.
+
+**Resolution applied (Phase 2).** `src/aerosphinx/evaluation/uncertainty.py`
+provides `paired_wilcoxon` and `paired_bootstrap_ci` (paired on the day, with
+a fixed seed for reproducibility), and `compare_models` produces a table
+with an explicit `verdict` column. Every comparison in the Track A backtest
+now carries a p-value, a bootstrap interval and a verdict, so a numerically
+smaller MAE can no longer be mistaken for a demonstrated improvement.
+
+The extended finding, from the 96-fold backtest over the full nine-year
+record: **no learned model significantly beats persistence at one-day
+horizon.** Random Forest matches it (delta -0.013, p = 0.86), ridge matches
+it (delta +0.101, p = 0.52), and XGBoost is significantly worse (delta
++0.965, p = 0.018). The learned models *do* beat persistence in the
+pre-monsoon and winter seasons, which is the physically expected pattern,
+but the effect is not large enough to move the nine-year aggregate past
+significance. See `docs/PHASE2_REPORT.md`.
 
 ---
 
@@ -580,4 +612,6 @@ covariates are available.
 | B-007 | What is the provenance of the root-level legacy CSV files (`aod_data_1..3.csv`, `combined_pm2.5_para*.csv`, `pm25_cpcb_05AM_*.csv`, `predicted_pm25_jan_to_dec_2019.csv`)? | The plan requires determining their provenance before moving or deleting them. They are preserved under `legacy/` unmodified so the question can be answered later from the data itself; answering it needs upstream context that is not in the repository. |
 | B-008 | Should the 124 Track A rows without a complete 1-day lag be dropped, or handled with gap-skipping lags? | Changes the usable Track A dataset size by roughly 4%. Phase 2 must choose and report the choice. |
 | B-009 | Should a day carrying a duplicated hour be excluded entirely, or resolved by a documented precedence rule? | No effect on the current record (no duplicate hours exist). Matters only if overlapping CPCB files are ever supplied. The current policy excludes the day. |
-| B-010 | Can the provenance and QA conventions of the CPCB export itself be established, particularly for the station-local meteorological columns? | Blocks the decision to use `AT`, `RH`, `WS`, `WD`, `RF`, `SR`, `BP` and `VWS` as Track A features, which are available across the full 2016-2024 record at ~99% completeness. |
+| B-010 | Can the provenance and QA conventions of the CPCB export itself be established, particularly for the station-local meteorological columns? | Blocks the decision to use `AT`, `RH`, `WS`, `WD`, `RF`, `SR`, `BP` and `VWS` as Track A features, which are available across the full 2016-2024 record at ~99% completeness. Now higher priority: Track A shows ground history alone saturates at one-day horizon, so these are the most promising remaining source of signal. |
+| B-011 | Should the cold-start folds (2017) be reported as a headline result, or excluded as an unrepresentative warm-up? | Currently reported in full, with the mechanism quantified. Excluding them would flatter the learned models, so the honest default is to keep them. |
+| B-012 | Is a regime-conditional model - persistence in monsoon, a learned model otherwise - in scope? | The per-season table suggests it would beat either model alone, and it is the natural home for the availability-aware framework the plan proposes. |

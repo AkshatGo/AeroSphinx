@@ -9,7 +9,7 @@ ROOT   := $(shell pwd)
 
 .DEFAULT_GOAL := help
 .PHONY: help install install-dev test test-unit test-integration audit \
-        build-track-a lint clean
+        build-track-a run-track-a lint clean
 
 help: ## Show this help
 	@grep -hE '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) \
@@ -36,6 +36,9 @@ audit: ## Regenerate the Phase 0 baseline audit artefacts
 
 build-track-a: ## Build the Track A daily dataset and manifest
 	$(PYTHON) scripts/build_track_a_dataset.py
+
+run-track-a: ## Run the Track A rolling-origin backtest
+	$(PYTHON) scripts/run_track_a.py
 
 lint: ## Byte-compile every module as a syntax check
 	$(PYTHON) -m compileall -q src scripts tests

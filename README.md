@@ -32,12 +32,25 @@ the two tracks exist to answer.
 
 ```bash
 make install-dev          # install the package and test dependencies
-make test                 # 40 tests
+make test                 # 86 tests
 make build-track-a        # build the Track A daily dataset and manifest
+make run-track-a          # run the Track A rolling-origin backtest
 ```
 
 Runtime is roughly two to four minutes on a standard laptop CPU. No GPU and no
 network access are required; all input files are local.
+
+### Current scientific position
+
+The Phase 2 backtest over the full nine-year CPCB record found that **no
+learned model significantly beats the persistence baseline** at one-day
+horizon: Random Forest matches it (Δ MAE −0.013, p = 0.86), ridge matches it
+(Δ MAE +0.101, p = 0.52), and XGBoost is significantly worse. The learned
+models *do* beat persistence in the pre-monsoon and winter seasons, and a
+tree ensemble's inability to predict outside its training range is a
+documented, quantified cold-start effect.
+
+Full analysis: `docs/PHASE2_REPORT.md`.
 
 ### Legacy chapter pipeline
 
@@ -89,13 +102,17 @@ config/                    Every scientific rule, in a file rather than in code
 src/aerosphinx/            The research package
   ingestion/cpcb.py        Validated CPCB daily series with a full audit trail
   features/lags.py         Calendar-aware lags and rolling statistics
+  evaluation/              Splits, metrics, paired uncertainty quantification
+  models/                  Baselines and supervised regressors
+  tracks/                  Track A experiment runner and regime diagnostics
   quality/                 Coverage analysis and run provenance
 data/cpcb/                 CPCB hourly PM2.5 exports, Faridabad, 2016-2024
 data/aod/                  INSAT-3D Imager L2G AOD V02R00 granules (HDF5)
 data/merra2/               MERRA-2 tavg1_2d_slv_Nx granules (NetCDF)
 data/processed/            Derived datasets (Track A daily series + features)
 data/manifests/            Run manifests with Git SHA, env and input hashes
-scripts/                   Audit and dataset-build entry points
+results/runs/              Experiment runs: metrics, predictions, comparisons
+scripts/                   Audit, dataset-build and experiment entry points
 tests/                     Unit and integration tests
 docs/                      Audit, defect register, data dictionary, protocol
 legacy/                    Preserved pre-Phase-0 experimental record

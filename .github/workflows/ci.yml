@@ -1,0 +1,77 @@
+name: AeroSphinx CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/akshatgo/aerosphinx-dev:latest
+      # Alternatively, use aubuntu with python installed and install deps:
+      # options: --user
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev]"
+
+      - name: Compile-check all modules
+        run: python -m compileall -q src scripts tests
+
+      - name: Run unit tests
+        run: python -m pytest tests/unit/ -q
+
+      - name: Run Phase 6 integration tests
+        run: python -m pytest tests/integration/test_phase6_fusion.py -q
+
+      - name: Run Phase 6 fusion gate
+        run: python scripts/run_phase6_fusion.py
+        # The script exits 1 on gate failure; we want the job to fail in that case
+
+      - name: Run Phase 7 ablations (diagnostic)
+        run: python scripts/run_phase7_ablations.py
+        # This is a diagnostic job; non-zero exit does not block
+
+  # Optional: lint / format check
+  lint:
+    runs-on: ubuntu-latest
+    name: Lint and format
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: python -m pip install --upgrade pip && pip install -e ".[dev]"
+
+      - name: Byte-compile check
+        run: python -m compileall -q src scripts tests
+
+      - name: Check formatting (black)
+        run: |
+          pip install black
+          black --check src scripts tests
+
+      - name: Check import order (isort)
+        run: |
+          pip install isort
+          isort --check-only src scripts tests

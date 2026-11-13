@@ -32,9 +32,10 @@ the two tracks exist to answer.
 
 ```bash
 make install-dev          # install the package and test dependencies
-make test                 # 86 tests
+make test                 # 202 tests
 make build-track-a        # build the Track A daily dataset and manifest
 make run-track-a          # run the Track A rolling-origin backtest
+make run-phase6           # build the fused dataset and run the availability gate
 ```
 
 Runtime is roughly two to four minutes on a standard laptop CPU. No GPU and no
@@ -50,7 +51,13 @@ models *do* beat persistence in the pre-monsoon and winter seasons, and a
 tree ensemble's inability to predict outside its training range is a
 documented, quantified cold-start effect.
 
-Full analysis: `docs/PHASE2_REPORT.md`.
+Phase 6 publishes the fused Track B dataset with an explicit availability
+mask: all 2,979 ground rows are preserved, missing environmental values are
+never filled, and all three sources are observed together on only 139 rows
+(4.7%). Track B ablations are Phase 7 and are not yet run.
+
+Full analysis: `docs/PHASE2_REPORT.md` (Track A), `docs/PHASE6_REPORT.md`
+(fusion and availability).
 
 ### Legacy chapter pipeline
 
@@ -99,9 +106,11 @@ config/                    Every scientific rule, in a file rather than in code
   common.yaml              Paths, station, calendar conventions
   data_quality.yaml        Quality rules applied during ingestion
   track_a.yaml             Track A features, evaluation and baselines
+  fusion.yaml              Availability policy for the fused Track B dataset
 src/aerosphinx/            The research package
   ingestion/cpcb.py        Validated CPCB daily series with a full audit trail
   features/lags.py         Calendar-aware lags and rolling statistics
+  features/availability.py Availability-masked multisource fusion and gate
   evaluation/              Splits, metrics, paired uncertainty quantification
   models/                  Baselines and supervised regressors
   tracks/                  Track A experiment runner and regime diagnostics
@@ -109,7 +118,7 @@ src/aerosphinx/            The research package
 data/cpcb/                 CPCB hourly PM2.5 exports, Faridabad, 2016-2024
 data/aod/                  INSAT-3D Imager L2G AOD V02R00 granules (HDF5)
 data/merra2/               MERRA-2 tavg1_2d_slv_Nx granules (NetCDF)
-data/processed/            Derived datasets (Track A daily series + features)
+data/processed/            Derived datasets (Track A series + fused Track B frame)
 data/manifests/            Run manifests with Git SHA, env and input hashes
 results/runs/              Experiment runs: metrics, predictions, comparisons
 scripts/                   Audit, dataset-build and experiment entry points

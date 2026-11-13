@@ -16,7 +16,7 @@ Severity reflects scientific impact on the research claims, not code aesthetics.
 |---|---|---|---|
 | D-001 Row-based PM2.5 lags are not calendar-aware | Critical | **FIXED** | Phase 1 — `src/aerosphinx/features/lags.py` |
 | D-002 Forecast consumes future observed satellite/reanalysis data | Critical | OPEN | Phase 8 |
-| D-003 Forward-fill manufactures environmental observations | High | OPEN | Phase 6 |
+| D-003 Forward-fill manufactures environmental observations | High | **FIXED** (Phase 6) | `src/aerosphinx/features/availability.py` |
 | D-004 27 INSAT granules contribute zero valid pixels | High | **QUANTIFIED** (Phase 4) | `src/aerosphinx/ingestion/aod.py` |
 | D-005 Climatology baseline mis-specified | High | **FIXED** (Phase 2) | `src/aerosphinx/models/baselines.py` |
 | D-006 Improvement over persistence not significant | High | **ADDRESSED** (Phase 2) | `src/aerosphinx/evaluation/uncertainty.py` |
@@ -168,6 +168,42 @@ claims to use it.
 **Test proving the correction.** A test asserting that no modelling row
 contains an AOD or MERRA-2 value that is not backed by a same-day source
 record, unless the row is explicitly flagged as imputed.
+
+**Resolution applied (Phase 6).**
+`src/aerosphinx/features/availability.py` builds the canonical fused frame
+with an explicit availability mask. The ground series defines the row
+calendar exactly: **2,979 rows, 2016-01-01 to 2024-12-31, 0 extended and 0
+dropped**. Every row carries `<source>_observed` and
+`<source>_observation_age_days` for `station_met`, `merra` and `aod`.
+Missing values are preserved as `NaN`; nothing is forward-filled,
+interpolated or imputed. AOD support counts are `0` where no AOD
+observation exists, because they are support metadata rather than
+measurements.
+
+The 33-check alignment gate (`validate_fused_dataset`) verifies calendar
+integrity, mask consistency, AOD pixel support and — for all 17 columns —
+same-day provenance against the source frame. On the real record **0 rows
+carry a value without a same-day observation** and **0 checks fail**. The
+published dataset is `data/processed/fused_dataset.csv`; the audit is
+`results/runs/F-fusion-20261113T071533Z/alignment_audit.json`.
+
+Proof tests: `tests/unit/test_fusion_availability.py` (including
+`test_missing_environmental_values_are_not_forward_filled` and
+`test_alignment_gate_rejects_a_forward_filled_value`, which pins the exact
+defect) and `tests/integration/test_phase6_fusion.py`
+(`test_no_environmental_value_without_a_same_day_observation`,
+`test_no_source_value_is_forward_filled`).
+
+The legacy `aerosphinx_pipeline.py` retains its `ffill(limit=3)` because it
+is the frozen Phase 0 baseline, preserved unchanged under the
+repository-preservation rule. It is not the research path and must not be
+used to build a Track B experiment.
+
+**Coverage consequence.** The mask makes the real limitation visible: all
+three sources are observed together on only **139 of 2,979 rows (4.7%)**,
+because AOD and MERRA-2 cover 2024 only. Phase 7 must compare groups on
+matched dates; the masked frame is deliberately not reduced to those 139
+rows, which would remove all winter and pre-monsoon ground history.
 
 ---
 

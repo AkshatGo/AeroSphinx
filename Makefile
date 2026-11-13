@@ -9,7 +9,7 @@ ROOT   := $(shell pwd)
 
 .DEFAULT_GOAL := help
 .PHONY: help install install-dev test test-unit test-integration audit \
-        build-track-a run-track-a lint clean
+        build-track-a run-track-a run-phase6 lint clean
 
 help: ## Show this help
 	@grep -hE '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) \
@@ -39,6 +39,9 @@ build-track-a: ## Build the Track A daily dataset and manifest
 
 run-track-a: ## Run the Track A rolling-origin backtest
 	$(PYTHON) scripts/run_track_a.py
+
+run-phase6: ## Build the fused dataset and run the Phase 6 alignment gate
+	$(PYTHON) scripts/run_phase6_fusion.py
 
 lint: ## Byte-compile every module as a syntax check
 	$(PYTHON) -m compileall -q src scripts tests

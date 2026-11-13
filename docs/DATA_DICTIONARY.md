@@ -341,6 +341,44 @@ The split is chronological and the validation window ends exactly where the
 test window begins, so no test observation influences any modelling choice.
 This separation is correct and was verified.
 
+### 5.3 Phase 6 fused frame (current research path)
+
+**Supersedes the forward-filled frame in 5.1 for all research work.** The
+legacy `aerosphinx_pipeline.py` frame is retained unchanged as the Phase 0
+baseline but is not a Track B modelling input.
+
+Construction (`src/aerosphinx/features/availability.py`):
+
+1. The ground daily series defines the row calendar; it is preserved exactly
+   (**2,979 rows, 2016-01-01 to 2024-12-31**).
+2. Each environmental source is left-joined on `Date` at one row per date.
+   A source cannot add or remove a row.
+3. Missing values are preserved as `NaN`. **No forward-fill, interpolation
+   or imputation.** (D-003)
+4. Per-source availability flags and observation ages are attached.
+5. AOD support counts are set to `0` where no AOD observation exists; they
+   are counts, not measurements.
+
+Output: `data/processed/fused_dataset.csv` — 42 columns.
+
+| Column | Meaning |
+|---|---|
+| `<source>_observed` | True only when that source has a genuine same-day observation |
+| `<source>_observation_age_days` | Calendar days since the last genuine observation; a diagnostic, never a value |
+| `n_sources_observed` | Count of requested sources observed on the row |
+| `all_sources_observed` | Whether all requested sources are observed |
+
+`<source>` is `station_met`, `merra` or `aod`.
+
+| Source | Observed rows | Fraction | Window |
+|---|---|---|---|
+| `station_met` | 2,979 | 100.0% | 2016-01-01 to 2024-12-31 |
+| `merra` | 172 | 5.8% | 2024-01-01 to 2024-06-20 |
+| `aod` | 139 | 4.7% | 2024-01-07 to 2024-06-18 |
+| **All three** | **139** | **4.7%** | 2024 only |
+
+The 33-check alignment gate is documented in `docs/PHASE6_REPORT.md`.
+
 ---
 
 ## 6. Derived feature dictionary

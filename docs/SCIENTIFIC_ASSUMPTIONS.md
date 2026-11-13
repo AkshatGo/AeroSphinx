@@ -75,6 +75,7 @@ measurement character, and no existing test detects it.
 | E3 | Sine/cosine encoding preserves the circular topology of weekly and annual cycles | **VERIFIED** | Standard and correctly implemented for day-of-week and month. |
 | E4 | Month is a sufficient seasonal encoding | **INFERRED** | `month_sin` carries 37.9% of importance, so the model leans on it heavily. A day-of-year cyclic encoding would represent the seasonal cycle more smoothly, and a monsoon-break discontinuity is not representable by a smooth annual cycle. Falsified by an alternative-encoding comparison, **not yet performed**. |
 | E5 | Calendar features are known at forecast issue time and so are legitimate forecast inputs | **VERIFIED** | Deterministic functions of the target date. |
+| E6 | Missing environmental observations are represented by an explicit mask and are never filled or imputed | **VERIFIED (Phase 6)** | The fused frame preserves 2,979 ground rows with 0 manufactured environmental values; the 33-check alignment gate verifies same-day provenance for every column. Falsified by any unobserved row carrying a value. See `docs/PHASE6_REPORT.md`. |
 
 ---
 
@@ -91,6 +92,7 @@ measurement character, and no existing test detects it.
 | F7 | The five-day recursive forecast demonstrates operational forecasting skill | **UNSUPPORTED** | The forecast consumes future observed AOD and reanalysis. It demonstrates retrospective estimation. (D-002) |
 | F8 | The persistence anchor value of 0.4 is appropriate at every forecast horizon | **UNSUPPORTED** | It was selected on a validation window for one-step prediction, then applied unchanged across a five-day recursion, where it compounds upward drift (96.6 -> 138.5 µg/m³). (D-016) |
 | F9 | The AQI category computed here is the official AQI | **UNSUPPORTED — mislabelled** | It is a PM2.5 concentration category from the PM2.5 sub-index breakpoints only. The official AQI is a multi-pollutant index. The `np.digitize` band boundaries were verified to match the CPCB PM2.5 bands exactly, but the *scope* claim is wrong. |
+| F10 | An observed-versus-unobserved target contrast computed over the full record measures informative missingness | **UNSUPPORTED** | The contrast is confounded by coverage: AOD and MERRA-2 exist only in 2024, so the "unobserved" group is dominated by 2016–2023. Only within-window contrasts (such as the Phase 4 AOD comparison on 2024 data) are interpretable. Phase 6 reports the full-record contrast for coverage description, not as evidence. |
 
 ---
 

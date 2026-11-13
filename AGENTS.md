@@ -4,9 +4,10 @@ This file is the primary project instruction for any agent or engineer working
 on AeroSphinx. It governs the repository at
 <https://github.com/AkshatGo/AeroSphinx>.
 
-**Current phase: 5 complete — MERRA-2 validated as a short validation.
-Phase 6 (multisource fusion and availability) not started.**
-See `docs/PHASE5_REPORT.md` for the MERRA-2 validation and the corrupt-column
+**Current phase: 6 complete — the fused dataset carries an explicit
+availability mask. Phase 7 (Track B ablations and robustness) not started.**
+See `docs/PHASE6_REPORT.md` for the fusion and availability gate,
+`docs/PHASE5_REPORT.md` for the MERRA-2 validation and the corrupt-column
 finding, `docs/PHASE4_REPORT.md` for the INSAT-3D validation, and
 `docs/PHASE3_WORKSTREAM_{A,B,C,D}.md` for the Phase 3 workstreams.
 
@@ -113,8 +114,7 @@ All features must obey an explicit availability contract.
   - **Workstream D** — CPCB station-local meteorology audit. *(complete)*
 - **Phase 4** — INSAT AOD validation. *(complete)*
 - **Phase 5** — MERRA-2 validation. *(complete — short validation, no group infrastructure built)*
-- **Phase 5** — MERRA-2 validation.
-- **Phase 6** — Multisource fusion and availability.
+- **Phase 6** — Multisource fusion and availability. *(complete)*
 - **Phase 7** — Track B ablations and robustness.
 - **Phase 8** — Operational covariate availability and forecasting.
 - **Phase 9** — CI, reproducibility and research reporting.
@@ -200,6 +200,45 @@ All features must obey an explicit availability contract.
     diurnal maximum at 10h instead of near dawn. Removing it drops the
     station group's *significantly worse* comparisons from 2 to 0 — the
     group goes from significantly harmful to merely neutral. (Phase 5)
+
+### Phase 6 findings that bind later phases
+
+14. **Forward-fill is gone from the research path.** The fused dataset
+    keeps all 2,979 ground rows and carries `<source>_observed` and
+    `<source>_observation_age_days` for `station_met`, `merra` and `aod`.
+    No unobserved row carries an environmental value; the 33-check
+    alignment gate refuses a dataset that does. `data/processed/`
+    → `fused_dataset.csv`. (D-003, FIXED)
+15. **Coverage is the Track B bottleneck.** All three sources are
+    simultaneously observed on **139 of 2,979 rows (4.7%)**. Station
+    meteorology covers 100% of the ground record, MERRA-2 5.8% and AOD
+    4.7%; the latter two are confined to 2024. Phase 7 comparisons must be
+    made on matched dates and must flag insufficient evidence. MERRA-2
+    remains untestable at 172 days. (Phase 6)
+16. **A masked frame is not a complete-case frame.** Dropping unobserved
+    rows would leave 139 rows, all in 2024, with no winter or pre-monsoon
+    coverage. The mask is what lets a model use nine years of ground
+    history while knowing when the environmental source is absent.
+    (Phase 6)
+17. **Fusion is estimation, not forecasting.** Every environmental group
+    is retrospective only. The operational contract still admits the
+    ground-only groups alone; D-002 remains Phase 8. (Phase 6)
+
+### Phase 6 output (complete)
+
+| Artefact | Path |
+|---|---|
+| Availability-masked fusion | `src/aerosphinx/features/availability.py` |
+| Fusion policy | `config/fusion.yaml` |
+| Runner and gate | `scripts/run_phase6_fusion.py` (`make run-phase6`) |
+| Fused dataset | `data/processed/fused_dataset.csv` |
+| Run artefacts | `results/runs/F-fusion-*/` |
+| Tests | 18 unit + 7 integration in `tests/unit/test_fusion_availability.py` and `tests/integration/test_phase6_fusion.py` |
+
+**Phase 6 headline: the fused frame preserves 2,979 ground rows, carries
+zero filled environmental values, and flags a source only where a same-day
+record exists. All three sources overlap on 139 rows (4.7%). See
+`docs/PHASE6_REPORT.md`.**
 
 ### Phase 2 output (complete)
 

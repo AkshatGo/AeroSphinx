@@ -84,12 +84,19 @@ def build_feature_frame(
     daily: pd.DataFrame,
     station_met: pd.DataFrame | None = None,
     merra: pd.DataFrame | None = None,
+    aod: pd.DataFrame | None = None,
 ) -> pd.DataFrame:
     """Merge the daily series with the environmental feature groups.
 
     The merge is a left join on the date, so the ground series determines
     which rows exist. Environmental values are never allowed to extend the
     calendar.
+
+    For the AOD group the join is done explicitly rather than by merge, so
+    that ``aod_valid_pixels`` has one unambiguous meaning: the number of
+    pixels supporting the daily value. A date with no granule and a date
+    whose granule contained no valid pixel both give **0**, because in
+    both cases there is no AOD observation.
     """
     frame = daily.copy()
     frame["Date"] = pd.to_datetime(frame["Date"])
@@ -102,6 +109,18 @@ def build_feature_frame(
         reanalysis = merra.copy()
         reanalysis["Date"] = pd.to_datetime(reanalysis["Date"])
         frame = frame.merge(reanalysis, on="Date", how="left", suffixes=("", "_merra"))
+    if aod is not None and not aod.empty:
+        satellite = aod.copy()
+        satellite["Date"] = pd.to_datetime(satellite["Date"])
+        satellite = satellite[
+            ["Date", "AOD", "aod_valid_pixels", "aod_overpasses"]
+        ].set_index("Date")
+        frame = frame.merge(
+            satellite, on="Date", how="left", suffixes=("", "_aod")
+        )
+        # A date with no AOD observation has no supporting pixel.
+        frame["aod_valid_pixels"] = frame["aod_valid_pixels"].fillna(0)
+        frame["aod_overpasses"] = frame["aod_overpasses"].fillna(0)
 
     return frame.sort_values("Date").reset_index(drop=True)
 

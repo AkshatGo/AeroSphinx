@@ -17,7 +17,7 @@ Severity reflects scientific impact on the research claims, not code aesthetics.
 | D-001 Row-based PM2.5 lags are not calendar-aware | Critical | **FIXED** | Phase 1 — `src/aerosphinx/features/lags.py` |
 | D-002 Forecast consumes future observed satellite/reanalysis data | Critical | OPEN | Phase 8 |
 | D-003 Forward-fill manufactures environmental observations | High | OPEN | Phase 6 |
-| D-004 27 INSAT granules contribute zero valid pixels | High | OPEN | Phase 4 |
+| D-004 27 INSAT granules contribute zero valid pixels | High | **QUANTIFIED** (Phase 4) | `src/aerosphinx/ingestion/aod.py` |
 | D-005 Climatology baseline mis-specified | High | **FIXED** (Phase 2) | `src/aerosphinx/models/baselines.py` |
 | D-006 Improvement over persistence not significant | High | **ADDRESSED** (Phase 2) | `src/aerosphinx/evaluation/uncertainty.py` |
 | D-007 Fusion does not beat the ground-only ablation | High | OPEN (finding, not a code defect) | Phase 7 |
@@ -175,9 +175,9 @@ record, unless the row is explicitly flagged as imputed.
 | | |
 |---|---|
 | **Severity** | High |
-| **Status** | VERIFIED |
-| **Location** | `aerosphinx_pipeline.py:314-325` (`load_aod_daily`) |
-| **Evidence** | `results/baseline/data_audit.json` → `insat_aod.granules_with_zero_valid_pixels` |
+| **Status** | **QUANTIFIED (Phase 4)** |
+| **Location** | `src/aerosphinx/ingestion/aod.py` |
+| **Evidence** | `results/runs/D-aod-20261113T042245Z/` |
 
 **Observed behaviour.** The station collocation window is +/-0.25 degrees
 around 28.4089 N, 77.3178 E on a 0.1-degree INSAT-3D grid, i.e. at most
@@ -198,6 +198,18 @@ files.
 **Proposed correction.** Add `aod_valid_pixels` and `aod_coverage_fraction`
 as features and as a documented quality gate, and report the distribution of
 pixel support alongside every satellite-derived result.
+
+**Resolution (Phase 4).** The `aod` feature group now carries `AOD`,
+`aod_valid_pixels` and `aod_overpasses`, so the support of every satellite
+value is visible to the model. The coverage report is published per date
+(`aod_coverage.csv`) and the missingness was found to be **informative
+rather than random**: days with no valid AOD pixel have a mean ground PM2.5
+of **119.38 ug/m3** against **105.34 ug/m3** on days with one
+(Mann-Whitney p = 0.032). The satellite record is least available exactly
+when pollution is worst. The thin support is the binding limitation: the
+median granule contributes **6** valid pixels out of a possible 25, and the
+granules carry **no QA or cloud-flag dataset**, so a present pixel means a
+retrieval was attempted rather than that it is trustworthy.
 
 ---
 

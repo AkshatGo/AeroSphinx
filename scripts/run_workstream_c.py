@@ -45,6 +45,7 @@ from aerosphinx.features.groups import (  # noqa: E402
     describe_groups,
     partition_by_availability,
 )
+from aerosphinx.ingestion.aod import load_aod_daily  # noqa: E402
 from aerosphinx.ingestion.merra import load_merra_daily  # noqa: E402
 from aerosphinx.ingestion.station_met import load_station_met_daily  # noqa: E402
 from aerosphinx.quality.provenance import build_provenance, write_provenance  # noqa: E402
@@ -78,18 +79,27 @@ def main() -> int:
     features_csv = root / common["paths"]["processed_dir"] / "track_a_features.csv"
     daily = pd.read_csv(features_csv, parse_dates=["Date"])
 
+    station_coords = common["project"]["station"]
     station = load_station_met_daily(root / common["paths"]["cpcb_dir"])
     merra = load_merra_daily(root / common["paths"]["merra_dir"])
+    aod = load_aod_daily(
+        root / common["paths"]["aod_dir"],
+        station_lat=station_coords["latitude"],
+        station_lon=station_coords["longitude"],
+    )
 
-    frame = build_feature_frame(daily, station.frame, merra.frame)
+    frame = build_feature_frame(daily, station.frame, merra.frame, aod.frame)
     print(f"      {len(frame)} daily rows, {len(frame.columns)} columns")
     print(f"      station_met: {station.coverage['n_days_accepted']} days accepted")
     print(f"      merra: {len(merra.frame)} days")
+    print(f"      aod: {len(aod.frame)} days "
+          f"({int((aod.frame['aod_valid_pixels'] == 0).sum())} with no valid pixel)")
 
     group_sets = {
         "ground_only": GROUND_ONLY_GROUPS,
         "ground_plus_station_met": GROUND_ONLY_GROUPS + ("station_met",),
         "ground_plus_merra": GROUND_ONLY_GROUPS + ("merra",),
+        "ground_plus_aod": GROUND_ONLY_GROUPS + ("aod",),
     }
 
     # The operational contract: only the ground-only set qualifies.

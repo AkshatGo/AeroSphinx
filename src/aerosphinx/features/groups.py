@@ -166,16 +166,34 @@ FEATURE_GROUPS: dict[str, FeatureGroup] = {
     ),
     "aod": FeatureGroup(
         name="aod",
-        features=("AOD",),
+        features=("AOD", "aod_valid_pixels", "aod_overpasses"),
         availability=AvailabilityClass.OBSERVED_SATELLITE,
-        description="INSAT-3D aerosol optical depth in the station collocation window.",
-        enabled=False,
-        note=(
-            "Disabled pending Phase 4 validation of the extraction. The "
-            "Phase 0 audit verified the HDF5 axis orientation, so the "
-            "group's availability class is settled; only the extraction "
-            "validation remains."
+        description=(
+            "INSAT-3D aerosol optical depth in the station collocation "
+            "window, together with the number of valid pixels supporting it "
+            "and the number of overpasses averaged into the daily value. "
+            "The support columns are included because the pixel count is "
+            "the only available proxy for retrieval quality: the granules "
+            "carry no QA or cloud-flag dataset."
         ),
+        note=(
+            "Enabled after the Phase 4 validation, which verified the "
+            "extraction against every granule: uniform structure, the "
+            "HDF5 dimension-scale orientation corroborated independently by "
+            "the ocean-versus-land aerosol contrast, fill value -999.0, no "
+            "duplicate date-overpass keys, and collocation-window "
+            "sensitivity reported. Retrospective only: the observation is "
+            "for a past date and the publication latency is not established, "
+            "and no satellite forecast product exists in the repository."
+        ),
+        metadata={
+            "validated_in": "Phase 4",
+            "known_limitation": (
+                "The granules carry no QA or cloud-flag dataset, so a "
+                "present pixel means a retrieval was attempted, not that "
+                "the retrieval is trustworthy."
+            ),
+        },
     ),
 }
 

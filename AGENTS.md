@@ -4,10 +4,10 @@ This file is the primary project instruction for any agent or engineer working
 on AeroSphinx. It governs the repository at
 <https://github.com/AkshatGo/AeroSphinx>.
 
-**Current phase: 3 complete — Workstreams A, B, C and D all done.**
-See `docs/PHASE3_PROTOCOL.md` (protocol and acceptance criteria),
-`docs/PHASE3_AUDIT.md` (audit of the Phase 2 evaluation and its two
-defects), and `docs/PHASE3_WORKSTREAM_{A,B,C,D}.md` for the workstreams.
+**Current phase: 4 complete — INSAT-3D AOD validated. Phase 5 (MERRA-2
+validation) not started.**
+See `docs/PHASE4_REPORT.md` for the AOD validation, and
+`docs/PHASE3_WORKSTREAM_{A,B,C,D}.md` for the Phase 3 workstreams.
 
 ---
 
@@ -110,7 +110,8 @@ All features must obey an explicit availability contract.
   - **Workstream B** — cold-start and extrapolation diagnostics. *(complete)*
   - **Workstream C** — regime-conditional modelling, ablation, routing. *(complete)*
   - **Workstream D** — CPCB station-local meteorology audit. *(complete)*
-- **Phase 4** — INSAT AOD validation.
+- **Phase 4** — INSAT AOD validation. *(complete)*
+- **Phase 5** — MERRA-2 validation.
 - **Phase 5** — MERRA-2 validation.
 - **Phase 6** — Multisource fusion and availability.
 - **Phase 7** — Track B ablations and robustness.
@@ -163,6 +164,25 @@ All features must obey an explicit availability contract.
    refuses an operational feature set containing a retrospective-only
    group. The nine station columns are preserved, retrospective-only, with
    no publication lag assumed. (Workstream C)
+
+9. **The AOD extraction is verified correct.** Orientation confirmed twice:
+   by the HDF5 dimension scales in all 169 granules, and independently by
+   the ocean-versus-land aerosol contrast (+0.414 under the correct
+   orientation, −0.240 under the transposed one, which is physically
+   impossible). (Phase 4)
+
+10. **AOD neither helps nor hurts.** Better in 8 of 25 comparisons, worse
+    in 17, **0 significantly better and 0 significantly worse**, with
+    |Δ MAE| ≤ 0.42 µg/m³. Contrast station meteorology, which was
+    significantly *harmful* at long horizons. The satellite data has not
+    demonstrated predictive value, but it does not degrade the model either.
+    (Phase 4)
+
+11. **The AOD missingness is informative, not random.** Days with no valid
+    AOD pixel have a mean ground PM2.5 of 119.38 µg/m³ against 105.34 on
+    days with one (p = 0.032). The satellite record is least available when
+    pollution is worst, and the median support is 6 pixels of a possible 25
+    with no QA flag to qualify it. (Phase 4)
 
 ### Phase 2 output (complete)
 

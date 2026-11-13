@@ -80,10 +80,20 @@ def test_partition_separates_the_two_classes():
     assert set(retrospective) == {"station_met", "merra"}
 
 
-def test_disabled_group_cannot_be_assembled():
-    """The AOD group is disabled pending Phase 4 validation."""
-    with pytest.raises(ValueError, match="disabled"):
-        assemble_features(GROUND_ONLY_GROUPS + ("aod",))
+def test_aod_group_is_enabled_after_phase_4_validation():
+    """The AOD group was enabled by the Phase 4 validation.
+
+    It carries the pixel-support columns alongside the value, because the
+    granules carry no QA dataset and the pixel count is the only available
+    proxy for retrieval quality.
+    """
+    group = get_group("aod")
+    assert group.enabled is True
+    assert "AOD" in group.features
+    assert "aod_valid_pixels" in group.features
+    assert "aod_overpasses" in group.features
+    # It is still retrospective only.
+    assert group.operational_eligible is False
 
 
 def test_unknown_group_raises():

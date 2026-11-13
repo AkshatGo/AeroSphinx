@@ -70,6 +70,7 @@ def main() -> int:
 
     root = args.root.resolve()
     common = yaml.safe_load((root / "config" / "common.yaml").read_text())
+    quality = yaml.safe_load((root / "config" / "data_quality.yaml").read_text())
     evaluation = yaml.safe_load((root / "config" / "track_a.yaml").read_text())["evaluation"]
 
     print("[1/4] building the feature frame")
@@ -80,7 +81,14 @@ def main() -> int:
     daily = pd.read_csv(features_csv, parse_dates=["Date"])
 
     station_coords = common["project"]["station"]
-    station = load_station_met_daily(root / common["paths"]["cpcb_dir"])
+    station = load_station_met_daily(
+        root / common["paths"]["cpcb_dir"],
+        valid_ranges={
+            key: tuple(value)
+            for key, value in quality["cpcb"]["station_met_valid_ranges"].items()
+        },
+        excluded_columns=tuple(quality["cpcb"]["station_met_excluded_columns"]),
+    )
     merra = load_merra_daily(root / common["paths"]["merra_dir"])
     aod = load_aod_daily(
         root / common["paths"]["aod_dir"],

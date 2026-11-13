@@ -4,9 +4,10 @@ This file is the primary project instruction for any agent or engineer working
 on AeroSphinx. It governs the repository at
 <https://github.com/AkshatGo/AeroSphinx>.
 
-**Current phase: 4 complete — INSAT-3D AOD validated. Phase 5 (MERRA-2
-validation) not started.**
-See `docs/PHASE4_REPORT.md` for the AOD validation, and
+**Current phase: 5 complete — MERRA-2 validated as a short validation.
+Phase 6 (multisource fusion and availability) not started.**
+See `docs/PHASE5_REPORT.md` for the MERRA-2 validation and the corrupt-column
+finding, `docs/PHASE4_REPORT.md` for the INSAT-3D validation, and
 `docs/PHASE3_WORKSTREAM_{A,B,C,D}.md` for the Phase 3 workstreams.
 
 ---
@@ -111,7 +112,7 @@ All features must obey an explicit availability contract.
   - **Workstream C** — regime-conditional modelling, ablation, routing. *(complete)*
   - **Workstream D** — CPCB station-local meteorology audit. *(complete)*
 - **Phase 4** — INSAT AOD validation. *(complete)*
-- **Phase 5** — MERRA-2 validation.
+- **Phase 5** — MERRA-2 validation. *(complete — short validation, no group infrastructure built)*
 - **Phase 5** — MERRA-2 validation.
 - **Phase 6** — Multisource fusion and availability.
 - **Phase 7** — Track B ablations and robustness.
@@ -183,6 +184,22 @@ All features must obey an explicit availability contract.
     days with one (p = 0.032). The satellite record is least available when
     pollution is worst, and the median support is 6 pixels of a possible 25
     with no QA flag to qualify it. (Phase 4)
+
+12. **MERRA-2 is sound data but an untestable group.** All 172 granules pass
+    every structural, unit, grid and physical check — T2M correlates +0.9728
+    with the station's own air temperature, and SLP−PS implies an elevation
+    of 185 m. But coverage is 172 days of a 3,288-day record, giving 5 matched
+    test rows, so the group stays **disabled** and no conclusion about it
+    is drawn. Its UTC window is 17:00–19:00 IST, an evening window offset
+    from the pollution peak. (Phase 5)
+
+13. **The CPCB barometric pressure column is corrupt** and is now excluded
+    from the station-meteorology group. It carries daily means up to
+    1062 mmHg (above sea-level pressure at sea level) on 107 days,
+    anti-correlates with the reanalysis at the same site, and has a
+    diurnal maximum at 10h instead of near dawn. Removing it drops the
+    station group's *significantly worse* comparisons from 2 to 0 — the
+    group goes from significantly harmful to merely neutral. (Phase 5)
 
 ### Phase 2 output (complete)
 

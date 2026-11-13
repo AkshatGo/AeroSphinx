@@ -140,6 +140,15 @@ not evidence of predictive value.
 |---|---|---|---|---|---|
 | Direct | 25 | 7 | **0** | 1 | **0** |
 | Recursive | 25 | 25 | 10 | 0 | **0** |
+
+> **REVISED in Phase 5.** The single "significantly worse" comparison above
+> was an artefact of a corrupt column in the station data. The CPCB
+> barometric-pressure column fails three independent physical checks and has
+> since been screened and excluded from the group (D-020). With it removed
+> the corrected run gives **0 significantly worse** as well. The null
+> conclusion — no demonstrated benefit — is unchanged, but the group is now
+> *neutral* rather than *harmful*. See `docs/PHASE5_REPORT.md` §6 and
+> `results/runs/C-regime-20261113T052110Z/`.
 | **All** | **50** | 32 | 15 | 2 | **0** |
 
 **After correction for the family of 50 comparisons, not one result
@@ -255,13 +264,17 @@ concentrated in exactly the seasons where persistence is weak.
    persistence, only over the global model.
 2. **Station-local meteorology does not add value.** In the direct method
    it is better in 7 of 25 comparisons and worse in 18, with **0
-   significantly better** and one significantly worse. Its apparent benefit
+   significantly better** and 1 significantly worse. Its apparent benefit
    under the recursive method is a mitigation of that method's divergence,
    not evidence of predictive value. **This is the first real test of the
    Track B hypothesis and the answer is negative.** The columns are
    genuine, complete and physically sensible — they simply do not carry
    information about PM2.5 that the persistence and seasonal signals do not
    already provide.
+
+   *(Phase 5 revision: the one significantly-worse comparison was caused by a
+   corrupt barometric-pressure column, now excluded. The corrected group is
+   neutral rather than harmful; the null conclusion stands.)*
 3. **MERRA-2 remains untestable.** Five matched dates. Nothing about
    MERRA-2's predictive value can be concluded from the local data, and
    none is claimed.

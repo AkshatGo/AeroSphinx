@@ -124,15 +124,16 @@ FEATURE_GROUPS: dict[str, FeatureGroup] = {
     "station_met": FeatureGroup(
         name="station_met",
         features=(
-            "AT", "RH", "WS", "WD", "RF", "TOT_RF", "SR", "BP", "VWS",
+            "AT", "RH", "WS", "WD", "RF", "TOT_RF", "SR", "VWS",
         ),
         availability=AvailabilityClass.STATION_LOCAL_UNKNOWN_AVAILABILITY,
         description=(
             "CPCB station-local meteorological measurements, daily "
             "aggregated from the hourly export: air temperature, relative "
             "humidity, wind speed and direction, rainfall, cumulative "
-            "rainfall, solar radiation, barometric pressure and vertical "
-            "wind speed."
+            "rainfall, solar radiation and vertical wind speed. The "
+            "barometric pressure column is excluded: it fails the Phase 5 "
+            "physical cross-validation against MERRA-2."
         ),
         note=(
             "RETROSPECTIVE ONLY. The Phase 3 Workstream D audit confirmed "
@@ -141,7 +142,13 @@ FEATURE_GROUPS: dict[str, FeatureGroup] = {
             "but the CPCB export carries no publication or upload "
             "timestamp, so the time at which each value became available "
             "to a forecaster cannot be established. No publication lag is "
-            "assumed. Excluded from every operational feature contract."
+            "assumed. Excluded from every operational feature contract. The "
+            "barometric pressure column BP is excluded from this group "
+            "because the Phase 5 cross-validation found daily means up to "
+            "1062 mmHg (1416 hPa, above sea-level pressure at sea level) "
+            "on 107 days, anti-correlation with the MERRA-2 surface "
+            "pressure at the same site, and a diurnal maximum at 10h "
+            "rather than near dawn."
         ),
     ),
     "merra": FeatureGroup(

@@ -23,7 +23,7 @@ Severity reflects scientific impact on the research claims, not code aesthetics.
 | D-007 Fusion does not beat the ground-only ablation | High | OPEN (finding, not a code defect) | Phase 7 |
 | D-008 PBLH unavailable; `PBLTOP` fallback is a latent trap | Medium | OPEN | Phase 5 |
 | D-009 `Humidity_Ratio` mis-named and mis-defined | Medium | OPEN | Phase 5 |
-| D-010 MERRA-2 features are midday single-cell values | Medium | **PARTIALLY FIXED** (Phase 3 Workstream C) | `src/aerosphinx/ingestion/merra.py` |
+| D-010 MERRA-2 features are midday single-cell values | Medium | **FIXED** (Phase 5) | `src/aerosphinx/ingestion/merra.py` |
 | D-011 Feature importance dominated by `month_sin` | Medium | **PARTIALLY ADDRESSED** (Phase 2) | `docs/PHASE2_REPORT.md` |
 | D-012 Duplicate CPCB source files | Medium | **FIXED** | Phase 0 — `legacy/`, `data/cpcb/` |
 | D-013 Mean-of-file-means aggregation is unsafe | Medium | **FIXED** | Phase 1 — `src/aerosphinx/ingestion/cpcb.py` |
@@ -33,6 +33,7 @@ Severity reflects scientific impact on the research claims, not code aesthetics.
 | D-017 Baseline defect shrank the headline evaluation set | High | **FIXED** (Phase 3 audit) | `src/aerosphinx/models/baselines.py` |
 | D-018 Bootstrap overstated the effective sample size | High | **FIXED** (Phase 3 audit) | `src/aerosphinx/evaluation/block_inference.py` |
 | D-019 Horizon-appropriate baseline was not used | Critical | **FIXED** (Phase 3 Workstream A) | `src/aerosphinx/tracks/multi_horizon.py` |
+| D-020 The CPCB barometric pressure column is corrupt | High | **FIXED** (Phase 5) | `config/data_quality.yaml` |
 
 ---
 
@@ -435,8 +436,24 @@ in `src/aerosphinx/ingestion/merra.py` and every variable carries a
 `_midday` suffix, because that is what the value is: the mean over the three
 hourly timesteps the distributed granules contain (11:30, 12:30, 13:30 UTC)
 at a single 1x1 grid cell. The misleading docstrings are gone and the
-provenance is recorded in the run manifest. The re-subsetting with full
-temporal coverage remains Phase 5 work.
+provenance is recorded in the run manifest.
+
+**Resolution (Phase 5, complete).** The Phase 5 validation verified all 172
+granules: identical dimensions ``(lat=1, lon=1, time=3)``, identical grid
+cell, zero unit mismatches, zero out-of-range values, zero missing values,
+and a complete 172-day coverage with no gaps. The naming now states the
+truth, and the physical cross-validation against the CPCB station confirmed
+the values: T2M correlates **+0.9728** with the station's own air
+temperature (mean difference +0.96 C), QV2M correlates +0.6038 with the
+station's implied specific humidity, and SLP minus PS gives +23.32 hPa, an
+implied model elevation of **185 m**, consistent with Faridabad's ~200 m.
+
+The remaining finding is a *coverage* limitation rather than a defect: the
+three UTC timesteps are **17:00, 18:00 and 19:00 IST**, an evening window
+rather than the Indian midday, so the sample is offset from the diurnal
+pollution peak. The MERRA-2 group therefore remains **disabled**: 172 days of
+a 3,288-day record gives only 5 matched test rows, and no conclusion about
+its predictive value is possible.
 
 ---
 
@@ -711,6 +728,59 @@ origins.
 
 ---
 
+## D-020 — The CPCB barometric pressure column is corrupt
+
+| | |
+|---|---|
+| **Severity** | High |
+| **Status** | **FIXED (Phase 5)** |
+| **Location** | `config/data_quality.yaml`, `src/aerosphinx/ingestion/station_met.py` |
+| **Evidence** | `results/runs/D-merra-20261113T052451Z/` |
+
+**Observed behaviour.** The Phase 5 physical cross-validation of MERRA-2
+against the CPCB station produced an impossible result: a daily correlation
+of **-0.214** between the station's `BP` column and the MERRA-2 sea-level
+pressure at the same site. Three independent checks confirm the column is
+unreliable:
+
+1. **Impossible magnitudes.** 107 of 3,288 days have a daily mean above
+   800 mmHg, reaching **1062 mmHg = 1416 hPa** — above sea-level pressure
+   *at sea level*, so impossible for any station. Concentrated in 2023-01/02
+   and 2024-07 to 2024-11.
+2. **Anti-correlation with the reanalysis.** Daily correlation of -0.214 with
+   MERRA-2 SLP and -0.212 with MERRA-2 surface pressure.
+3. **An implausible diurnal phase.** The column's daily maximum falls at
+   **10h** and its minimum at 17h. Surface pressure at a fixed elevation
+   must be highest near dawn and lowest in the afternoon. The station's own
+   `AT` column is correctly phased (max 14h, min 05h), and MERRA-2's fields
+   show the expected evening behaviour.
+
+The other eight station columns pass every screen, with zero implausible
+days.
+
+**Impact.** The corrupt values are extreme outliers. They were supplied to
+the model as a feature in the Workstream C station-meteorology experiment.
+I tested whether they caused the reported harm and **the hypothesis was
+wrong**: the 22 corrupt-BP dates in the evaluation set carry only 1.4% of the
+total absolute error, because they are low-pollution late-2024 days that
+are easy to predict. Removing the column nevertheless changes the result
+materially: the station-meteorology group's count of *significantly worse*
+comparisons falls from **2 to 0**, and its best delta improves from +3.08 to
++2.13. The group goes from significantly harmful to merely neutral. The null
+conclusion — no demonstrated benefit — is unchanged.
+
+**Resolution.** The `BP` column is screened (a plausibility range is now
+declared for all nine station columns) and excluded from the
+`station_met` feature group. The Workstream C run was re-executed with the
+corrected feature set; the prior run is preserved at
+`results/runs/C-regime-20261112T201612Z/`.
+
+**Open.** The diurnal phase inversion suggests a *transformation* applied to
+the column rather than sporadic instrument faults, so the same treatment may
+affect other CPCB exports. See B-039 and B-040.
+
+---
+
 ## Open questions requiring a decision (BLOCKED)
 
 | ID | Question | Why it is blocked |
@@ -738,4 +808,9 @@ origins.
 | B-021 | Does CPCB publish hourly data with a timestamp, and what is the publication latency relative to the observation hour? | **Blocks making the station-local columns forecast-usable.** This is a CPCB data-provenance question. The columns are preserved, retrospective-only, until answered. |
 | B-022 | Is a declared one-hour publication lag acceptable for retrospective estimation, recorded as an assumption rather than a verified fact? | **DECIDED: retrospective-only.** The Phase 3 authorisation ruled that no publication lag may be assumed and no availability timestamp may be fabricated. |
 | B-023 | Which of the nine audited station-local variables carry genuine PM2.5 signal? | **ANSWERED in Workstream C: none, as a group.** The nine-column group is better in 7 of 25 direct comparisons and worse in 18, with 0 significantly better after Holm correction. Individual columns remain untested (B-029). |
-| B-024 | Should `BP` (22.4% missing) and `VWS` (43.3% missing) be excluded on completeness grounds before any modelling? | Open. The group was tested as a whole; see B-032. |
+| B-024 | Should `BP` (22.4% missing) and `VWS` (43.3% missing) be excluded on completeness grounds before any modelling? | **ANSWERED in Phase 5: `BP` excluded, for a stronger reason.** It fails three independent physical checks (see D-020). `VWS` remains included; it passes its screens. |
+| B-038 | Can MERRA-2 granules be obtained for 2016–2023 (B-002)? | Without them the group stays untestable: 172 days of a 3,288-day record gives 5 matched test rows. |
+| B-039 | Is the station `BP` corruption a localised instrument fault or a systematic transformation? | The diurnal phase inversion points to a transformation, so the same treatment may affect other CPCB exports. |
+| B-040 | Should every source be cross-validated against every other source? | The `BP` defect was found by cross-validating MERRA-2 against the station — a different group from the one being validated. Worth doing systematically. |
+| B-041 | Should the MERRA-2 subset be re-requested with full 24-hour coverage and an 08:00–14:00 UTC window (13:30–19:30 IST) that brackets the Indian midday? | The current window samples 17:00–19:00 IST, an evening window offset from the pollution peak. |
+| B-042 | With `BP` excluded, does the station-meteorology group help under a tree model rather than the linear one? | Open. The Workstream C experiment used ridge throughout. |

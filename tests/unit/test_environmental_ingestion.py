@@ -74,7 +74,12 @@ def test_station_met_reports_per_column_coverage(synthetic_cpcb):
 
 
 def test_station_met_screens_implausible_values(tmp_path):
-    """Out-of-range values must be set to missing, not clipped."""
+    """Out-of-range values must be set to missing, not clipped.
+
+    The Phase 5 cross-validation found the CPCB barometric-pressure column
+    carrying daily means up to 1062 mmHg, which is above sea-level
+    pressure at sea level, so the screen must be explicit and configurable.
+    """
     directory = tmp_path / "cpcb"
     directory.mkdir()
     dates = pd.date_range("2024-01-01", "2024-01-03", freq="h")
@@ -87,9 +92,33 @@ def test_station_met_screens_implausible_values(tmp_path):
         }
     )
     rows.to_csv(directory / "a.csv", index=False)
-    result = load_station_met_daily(directory)
+    result = load_station_met_daily(
+        directory,
+        valid_ranges={"AT (°C)": (-20.0, 55.0), "RH (%)": (0.0, 100.0)},
+    )
     # The implausible temperature must not appear as a value.
     assert "AT" not in result.frame.columns or result.frame["AT"].isna().all()
+    assert result.coverage["per_column_screened_values"].get("AT", 0) == len(dates)
+
+
+def test_station_met_can_exclude_a_column(tmp_path):
+    """A column excluded by policy must not reach the output."""
+    directory = tmp_path / "cpcb"
+    directory.mkdir()
+    dates = pd.date_range("2024-01-01", "2024-01-02", freq="h")
+    rows = pd.DataFrame(
+        {
+            "Timestamp": dates.strftime("%Y-%m-%d %H:%M:%S"),
+            "PM2.5 (µg/m³)": 80.0,
+            "AT (°C)": 25.0,
+            "BP (mmHg)": 725.0,
+        }
+    )
+    rows.to_csv(directory / "a.csv", index=False)
+    result = load_station_met_daily(directory, excluded_columns=("BP (mmHg)",))
+    assert "BP" not in result.frame.columns
+    assert "AT" in result.frame.columns
+    assert result.coverage["excluded_columns"] == ["BP (mmHg)"]
 
 
 def test_missing_directory_raises(tmp_path):

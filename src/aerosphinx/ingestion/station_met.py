@@ -57,6 +57,8 @@ def load_station_met_daily(
     cpcb_dir: Path | str,
     min_hours_per_day: int = 18,
     max_age_days: int | None = None,
+    valid_ranges: dict[str, tuple[float, float]] | None = None,
+    excluded_columns: tuple[str, ...] = (),
 ) -> StationMetDaily:
     """Aggregate the CPCB station-local meteorological columns to daily values.
 
@@ -69,6 +71,15 @@ def load_station_met_daily(
     max_age_days:
         Not used for the strict variant; retained so the signature matches
         the other ingestions.
+    valid_ranges:
+        Plausibility screen per source column. Values outside the range
+        are set to missing rather than clipped. The Phase 5 physical
+        cross-validation of MERRA-2 against the station found that the
+        barometric-pressure column contains daily means up to 1062 mmHg
+        (1416 hPa, above sea-level pressure at sea level) on 107 days, so a
+        screen is required rather than optional.
+    excluded_columns:
+        Source columns to leave out of the output entirely.
 
     Returns
     -------
@@ -91,13 +102,18 @@ def load_station_met_daily(
     frame["_date"] = frame["_timestamp"].dt.normalize()
 
     internal: dict[str, pd.Series] = {}
+    screened: dict[str, int] = {}
     for source, name in COLUMN_NAMES.items():
-        if source not in frame.columns:
+        if source not in frame.columns or source in excluded_columns:
             continue
         values = pd.to_numeric(frame[source], errors="coerce")
-        # The audited valid ranges, applied as a screen rather than a clip.
-        valid = values.between(-50.0, 100.0) if name in {"AT", "RH"} else values.notna()
-        values = values.where(valid)
+        bounds = (valid_ranges or {}).get(source)
+        if bounds is not None:
+            low, high = bounds
+            invalid = (values < low) | (values > high)
+            if invalid.any():
+                screened[name] = int(invalid.sum())
+            values = values.where(~invalid)
         internal[name] = values
 
     daily = pd.DataFrame({"Date": frame["_date"]})
@@ -137,6 +153,8 @@ def load_station_met_daily(
             name: round(float(1.0 - accepted_per_column[name].mean()), 4)
             for name in internal
         },
+        "per_column_screened_values": screened,
+        "excluded_columns": list(excluded_columns),
         "mean_columns_present_per_accepted_day": (
             round(float(n_columns_present[accepted].mean()), 3) if accepted.any() else 0.0
         ),

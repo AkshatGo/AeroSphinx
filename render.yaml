@@ -19,9 +19,11 @@ services:
     healthCheckPath: /api/health
     autoDeploy: true
     envVars:
+      # Fully qualified versions are required by Render's PYTHON_VERSION /
+      # NODE_VERSION variables. Node must stay >=22.12 (Vite 8 requirement).
       - key: PYTHON_VERSION
-        value: 3.12.7
+        value: 3.12.13
       - key: NODE_VERSION
-        value: 22.11.0
+        value: 24.22.1
       - key: PYTHONUNBUFFERED
         value: "1"

@@ -39,6 +39,7 @@ from dataclasses import dataclass, field
 import numpy as np
 import pandas as pd
 
+from aerosphinx.features.seasonal import SEASON_MONTHS, assign_season
 from aerosphinx.models.supervised import build_model
 
 __all__ = [
@@ -52,13 +53,10 @@ __all__ = [
 ]
 
 
-#: The four meteorological regimes, with the months they cover.
-REGIMES = {
-    "winter": (12, 1, 2),
-    "pre_monsoon": (3, 4, 5),
-    "monsoon": (6, 7, 8, 9),
-    "post_monsoon": (10, 11),
-}
+#: The four meteorological regimes, with the months they cover. The month
+#: mapping is owned by :mod:`aerosphinx.features.seasonal`; this alias exists
+#: for backward compatibility with callers importing ``REGIMES``.
+REGIMES = SEASON_MONTHS
 
 #: Candidate minimum training sizes for a specialist, selected on validation.
 MIN_SPECIALIST_DAYS_CANDIDATES = (60, 120, 180, 240, 365)
@@ -77,11 +75,7 @@ def assign_regime(dates) -> np.ndarray:
     numpy.ndarray
         Regime labels, one per date.
     """
-    months = pd.to_datetime(pd.Series(dates)).dt.month.to_numpy()
-    regimes = np.full(len(months), "unknown", dtype=object)
-    for regime, members in REGIMES.items():
-        regimes[np.isin(months, members)] = regime
-    return regimes
+    return assign_season(pd.Series(dates)).to_numpy(dtype=object)
 
 
 def regime_indicators(dates) -> pd.DataFrame:

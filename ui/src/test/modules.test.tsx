@@ -7,6 +7,10 @@ import {
   mockExperiments,
   mockSeries,
   mockManifests,
+  mockMatrix,
+  mockAblations,
+  mockSufficiency,
+  mockAlignment,
 } from "./utils";
 
 const { api } = vi.hoisted(() => ({
@@ -18,6 +22,10 @@ const { api } = vi.hoisted(() => ({
     dataset: vi.fn(),
     series: vi.fn(),
     manifests: vi.fn(),
+    experimentMatrix: vi.fn(),
+    ablations: vi.fn(),
+    seasonalSufficiency: vi.fn(),
+    alignment: vi.fn(),
   },
 }));
 
@@ -52,6 +60,10 @@ beforeEach(() => {
   api.dataset.mockResolvedValue(mockStatus.dataset);
   api.series.mockResolvedValue(mockSeries);
   api.manifests.mockResolvedValue(mockManifests);
+  api.experimentMatrix.mockResolvedValue(mockMatrix);
+  api.ablations.mockResolvedValue(mockAblations);
+  api.seasonalSufficiency.mockResolvedValue(mockSufficiency);
+  api.alignment.mockResolvedValue(mockAlignment);
 });
 
 describe("Command Center", () => {

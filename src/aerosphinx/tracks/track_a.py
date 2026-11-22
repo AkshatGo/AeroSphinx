@@ -34,6 +34,7 @@ from aerosphinx.models.baselines import (
     SeasonalNaiveBaseline,
     persistence_forecast,
 )
+from aerosphinx.features.seasonal import assign_season
 from aerosphinx.models.supervised import build_model
 from aerosphinx.tracks.diagnostics import cold_start_report, coverage_by_fold
 
@@ -82,21 +83,13 @@ class TrackAResult:
 
 
 def _season(dates: pd.Series) -> pd.Series:
-    """Meteorological season labels for northern India."""
-    month = dates.dt.month
-    return pd.Series(
-        np.select(
-            [
-                month.isin([12, 1, 2]),
-                month.isin([3, 4, 5]),
-                month.isin([6, 7, 8, 9]),
-                month.isin([10, 11]),
-            ],
-            ["winter", "pre_monsoon", "monsoon", "post_monsoon"],
-            default="unknown",
-        ),
-        index=dates.index,
-    )
+    """Meteorological season labels for northern India.
+
+    Delegates to the single authoritative assignment in
+    :mod:`aerosphinx.features.seasonal`; the label set and month mapping are
+    defined there and nowhere else.
+    """
+    return assign_season(dates)
 
 
 def run_track_a(

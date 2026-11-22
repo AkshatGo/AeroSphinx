@@ -157,7 +157,61 @@ export const ManifestsSchema = z.object({
   ),
 });
 
+export const ArtifactRowSchema = z.record(
+  z.string(),
+  z.union([z.string(), z.number(), z.boolean(), z.null()]),
+);
+export type ArtifactRow = z.infer<typeof ArtifactRowSchema>;
+
+export const ExperimentMatrixSchema = z.object({
+  available: z.boolean(),
+  reason: z.string().optional(),
+  generated: z.string().nullable().optional(),
+  run_id: z.string().nullable().optional(),
+  configs: z.record(z.string(), z.unknown()).optional(),
+  metrics: z.array(ArtifactRowSchema).optional(),
+  common: z.array(ArtifactRowSchema).optional(),
+  by_season: z.array(ArtifactRowSchema).optional(),
+  by_year: z.array(ArtifactRowSchema).optional(),
+  ablations: z.array(ArtifactRowSchema).optional(),
+});
+
+export const AblationsSchema = z.object({
+  available: z.boolean(),
+  reason: z.string().optional(),
+  rows: z.array(ArtifactRowSchema).optional(),
+  common: z.array(ArtifactRowSchema).optional(),
+});
+
+export const SufficiencySchema = z.object({
+  available: z.boolean(),
+  reason: z.string().optional(),
+  rows: z.array(ArtifactRowSchema).optional(),
+  criteria: z.record(z.string(), z.unknown()).nullable().optional(),
+  counts: z.record(z.string(), z.number()).nullable().optional(),
+  by_season: z
+    .record(z.string(), z.record(z.string(), z.number()))
+    .nullable()
+    .optional(),
+  not_evaluable: z
+    .array(z.record(z.string(), z.string()))
+    .nullable()
+    .optional(),
+});
+
+export const AlignmentSchema = z.object({
+  available: z.boolean(),
+  reason: z.string().optional(),
+  coverage: z.array(ArtifactRowSchema).optional(),
+  missingness: z.array(ArtifactRowSchema).optional(),
+  report: z.record(z.string(), z.unknown()).optional(),
+});
+
 export type Status = z.infer<typeof StatusSchema>;
+export type ExperimentMatrix = z.infer<typeof ExperimentMatrixSchema>;
+export type Ablations = z.infer<typeof AblationsSchema>;
+export type Sufficiency = z.infer<typeof SufficiencySchema>;
+export type Alignment = z.infer<typeof AlignmentSchema>;
 export type Experiments = z.infer<typeof ExperimentsSchema>;
 export type SeriesResponse = z.infer<typeof SeriesSchema>;
 export type SeriesPoint = z.infer<typeof SeriesPointSchema>;
@@ -186,4 +240,12 @@ export const api = {
     ),
   manifests: (signal?: AbortSignal) =>
     getJson("/manifests", ManifestsSchema, signal),
+  experimentMatrix: (signal?: AbortSignal) =>
+    getJson("/experiment-matrix", ExperimentMatrixSchema, signal),
+  ablations: (signal?: AbortSignal) =>
+    getJson("/ablations", AblationsSchema, signal),
+  seasonalSufficiency: (signal?: AbortSignal) =>
+    getJson("/seasonal-sufficiency", SufficiencySchema, signal),
+  alignment: (signal?: AbortSignal) =>
+    getJson("/alignment", AlignmentSchema, signal),
 };

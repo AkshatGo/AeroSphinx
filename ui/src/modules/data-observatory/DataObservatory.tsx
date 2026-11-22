@@ -1,4 +1,5 @@
-import { useDataset } from "@/lib/queries";
+import { useDataset, useAlignment } from "@/lib/queries";
+import type { ArtifactRow } from "@/lib/api";
 import {
   Card,
   EmptyState,
@@ -7,8 +8,19 @@ import {
   PageHeader,
   StatCard,
   StatusBadge,
+  formatNumber,
   formatPct,
 } from "@/components/ui/primitives";
+
+function cell(row: ArtifactRow, key: string) {
+  const value = row[key];
+  return value === null || value === undefined ? "—" : String(value);
+}
+
+function numeric(row: ArtifactRow, key: string) {
+  const value = row[key];
+  return typeof value === "number" ? value : null;
+}
 
 const SOURCE_META = [
   {
@@ -36,6 +48,8 @@ const SOURCE_META = [
 
 export function DataObservatory() {
   const dataset = useDataset();
+  const alignment = useAlignment();
+  const al = alignment.data;
 
   if (dataset.isLoading) return <LoadingBlock rows={5} />;
   if (dataset.isError)
@@ -101,6 +115,104 @@ export function DataObservatory() {
           );
         })}
       </div>
+
+      <Card
+        title="Daily alignment (persisted artefacts)"
+        description="Coverage read from results/alignment — a missing value is never treated as zero"
+      >
+        {alignment.isLoading && <LoadingBlock rows={3} />}
+        {alignment.isError && (
+          <ErrorState
+            message={(alignment.error as Error).message}
+            onRetry={() => alignment.refetch()}
+          />
+        )}
+        {al && !al.available && (
+          <EmptyState
+            title="Alignment artefacts unavailable"
+            description={al.reason}
+          />
+        )}
+        {al?.available && (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm min-w-0">
+              <thead>
+                <tr className="border-b border-line text-left text-[11px] uppercase tracking-wider text-fg-muted">
+                  <th className="py-2 pr-3">Source</th>
+                  <th className="py-2 pr-3">Observed</th>
+                  <th className="py-2 pr-3">Missing</th>
+                  <th className="py-2 pr-3">Coverage</th>
+                  <th className="py-2">First → last</th>
+                </tr>
+              </thead>
+              <tbody>
+                {(al.coverage ?? []).map((row) => (
+                  <tr key={cell(row, "source")} className="border-b border-line/60">
+                    <td className="py-2 pr-3 font-mono text-xs">
+                      {cell(row, "source")}
+                    </td>
+                    <td className="py-2 pr-3 font-mono text-xs">
+                      {cell(row, "observed_rows")}
+                    </td>
+                    <td className="py-2 pr-3 font-mono text-xs">
+                      {cell(row, "missing_rows")}
+                    </td>
+                    <td className="py-2 pr-3 font-mono text-xs">
+                      {formatPct(numeric(row, "observed_fraction"))}
+                    </td>
+                    <td className="py-2 font-mono text-xs">
+                      {cell(row, "first_observed")} → {cell(row, "last_observed")}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </Card>
+
+      <Card
+        title="Missingness contrast"
+        description="Target mean on observed versus unobserved dates: informative missingness, not random"
+      >
+        {al?.available ? (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm min-w-0">
+              <thead>
+                <tr className="border-b border-line text-left text-[11px] uppercase tracking-wider text-fg-muted">
+                  <th className="py-2 pr-3">Source</th>
+                  <th className="py-2 pr-3">Mean when observed</th>
+                  <th className="py-2 pr-3">Mean when absent</th>
+                  <th className="py-2">Difference</th>
+                </tr>
+              </thead>
+              <tbody>
+                {(al.missingness ?? []).map((row) => (
+                  <tr key={cell(row, "source")} className="border-b border-line/60">
+                    <td className="py-2 pr-3 font-mono text-xs">
+                      {cell(row, "source")}
+                    </td>
+                    <td className="py-2 pr-3 font-mono text-xs">
+                      {formatNumber(numeric(row, "target_mean_when_observed"))}
+                    </td>
+                    <td className="py-2 pr-3 font-mono text-xs">
+                      {formatNumber(numeric(row, "target_mean_when_unobserved"))}
+                    </td>
+                    <td className="py-2 font-mono text-xs">
+                      {formatNumber(numeric(row, "target_mean_difference"))}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <EmptyState
+            title="Missingness contrast unavailable"
+            description={al?.reason}
+          />
+        )}
+      </Card>
 
       <Card
         title="Per-column missingness"

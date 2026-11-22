@@ -99,3 +99,101 @@ export const mockManifests = {
     },
   ],
 };
+
+export const mockMatrix = {
+  available: true,
+  generated: "2026-11-22T10:00:00Z",
+  run_id: "matrix-1",
+  configs: {},
+  metrics: [
+    {
+      track: "A",
+      config: "M0",
+      model: "persistence",
+      n: 120,
+      MAE: 12.0,
+      RMSE: 18.0,
+      MedianAE: 9.0,
+      R2: 0.1,
+      Mean_Bias: 0.0,
+      folds: 3,
+    },
+    {
+      track: "B",
+      config: "M4",
+      model: "ridge",
+      n: 60,
+      MAE: 10.0,
+      RMSE: 15.0,
+      MedianAE: 8.0,
+      R2: 0.2,
+      Mean_Bias: 0.5,
+      folds: 2,
+    },
+  ],
+  common: [],
+  by_season: [],
+  by_year: [],
+  ablations: [
+    { track: "B", config: "M4", reference: "M1", delta_MAE: -1.5, n: 60 },
+  ],
+};
+
+export const mockAblations = {
+  available: true,
+  rows: [
+    { track: "B", config: "M4", reference: "M1", delta_MAE: -1.5, n: 60 },
+  ],
+  common: [],
+};
+
+export const mockSufficiency = {
+  available: true,
+  rows: [
+    {
+      season: "winter",
+      source: "aod",
+      n_season_rows: 742,
+      n_observed: 41,
+      observed_fraction: 0.055,
+      status: "WARNING",
+      reason: "41 observed rows supports a comparison but is below stability",
+    },
+    {
+      season: "post_monsoon",
+      source: "merra",
+      n_season_rows: 479,
+      n_observed: 0,
+      observed_fraction: 0,
+      status: "NOT_EVALUABLE",
+      reason: "the source is never observed in this season",
+    },
+  ],
+  criteria: { min_rows_for_inference: 30, min_rows_for_sufficient: 90 },
+  counts: { SUFFICIENT: 0, WARNING: 1, INSUFFICIENT: 0, NOT_EVALUABLE: 1 },
+};
+
+export const mockAlignment = {
+  available: true,
+  coverage: [
+    {
+      source: "aod",
+      observed_rows: 139,
+      missing_rows: 2840,
+      observed_fraction: 0.0467,
+      first_observed: "2024-01-07",
+      last_observed: "2024-06-18",
+    },
+  ],
+  missingness: [
+    {
+      source: "aod",
+      n_observed: 139,
+      n_unobserved: 2840,
+      target_mean_when_observed: 100.0,
+      target_mean_when_unobserved: 93.0,
+      target_mean_difference: 7.0,
+    },
+  ],
+  report: { rows: 2979, validation_passed: true },
+};

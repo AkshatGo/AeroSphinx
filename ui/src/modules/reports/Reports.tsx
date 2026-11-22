@@ -185,7 +185,7 @@ export function Reports() {
             {experiments.isLoading && <LoadingBlock rows={3} />}
             {m?.available && m.metrics ? (
               <div className="overflow-x-auto">
-                <table className="w-full text-sm">
+                <table className="w-full text-sm min-w-0">
                   <thead>
                     <tr className="border-b border-line text-left text-[11px] uppercase tracking-wider text-fg-muted">
                       <th className="py-2 pr-3">Model</th>
@@ -221,7 +221,7 @@ export function Reports() {
           </Card>
 
           <Card title="Report preview">
-            <pre className="max-h-64 overflow-auto rounded-md border border-line bg-surface-raised p-3 font-mono text-[11px] leading-relaxed">
+            <pre className="max-h-64 overflow-auto rounded-md border border-line bg-surface-raised p-3 font-mono text-[11px] leading-relaxed min-w-0">
 {`AeroSphinx — Experiment Report
 Configuration : ${m?.configuration ?? "unavailable"}
 Generated     : ${m?.generated ?? "unavailable"}

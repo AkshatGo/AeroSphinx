@@ -30,6 +30,8 @@ from dataclasses import dataclass
 import numpy as np
 import pandas as pd
 
+from aerosphinx.features.seasonal import season_of_month
+
 __all__ = [
     "ColdStartSummary",
     "extrapolation_conditioned_error",
@@ -42,14 +44,12 @@ __all__ = [
 
 
 def _season_of(month: int) -> str:
-    """Meteorological season for a month number."""
-    if month in (12, 1, 2):
-        return "winter"
-    if month in (3, 4, 5):
-        return "pre_monsoon"
-    if month in (6, 7, 8, 9):
-        return "monsoon"
-    return "post_monsoon"
+    """Meteorological season for a month number.
+
+    Delegates to the single authoritative assignment in
+    :mod:`aerosphinx.features.seasonal`.
+    """
+    return season_of_month(month)
 
 
 @dataclass

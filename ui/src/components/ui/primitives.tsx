@@ -107,11 +107,11 @@ export function StatusBadge({
 }) {
   const s = status.toUpperCase();
   let cls = "border-line bg-surface-raised text-fg-muted";
-  if (["PASS", "FIXED", "CLOSED", "RESOLVED", "ANSWERED", "DECIDED", "VALIDATED", "AVAILABLE"].includes(s))
+  if (["PASS", "FIXED", "CLOSED", "RESOLVED", "ANSWERED", "DECIDED", "VALIDATED", "AVAILABLE", "SUFFICIENT"].includes(s))
     cls = "border-success/30 bg-success/10 text-success";
   else if (["WARNING", "PARTIALLY_RESOLVED", "PARTIALLY_ADDRESSED", "QUANTIFIED", "ADDRESSED", "DEGRADED", "ABSTAINED"].includes(s))
     cls = "border-warning/30 bg-warning/10 text-warning";
-  else if (["FAIL", "OPEN", "UNSUPPORTED", "UNAVAILABLE", "NOT_COMPARABLE", "INSUFFICIENT_EVIDENCE"].includes(s))
+  else if (["FAIL", "OPEN", "UNSUPPORTED", "UNAVAILABLE", "NOT_COMPARABLE", "INSUFFICIENT_EVIDENCE", "INSUFFICIENT", "NOT_EVALUABLE"].includes(s))
     cls = "border-danger/30 bg-danger/10 text-danger";
 
   return (

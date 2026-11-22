@@ -1,5 +1,10 @@
 import { useState } from "react";
-import { useExperiments } from "@/lib/queries";
+import {
+  useExperiments,
+  useExperimentMatrix,
+  useSeasonalSufficiency,
+} from "@/lib/queries";
+import type { ArtifactRow } from "@/lib/api";
 import { EXPERIMENT_CATALOG, type ExperimentDef } from "@/lib/reference";
 import {
   Card,
@@ -12,10 +17,24 @@ import {
   formatNumber,
 } from "@/components/ui/primitives";
 
+function cell(row: ArtifactRow, key: string) {
+  const value = row[key];
+  return value === null || value === undefined ? "—" : String(value);
+}
+
+function numeric(row: ArtifactRow, key: string) {
+  const value = row[key];
+  return typeof value === "number" ? value : null;
+}
+
 export function ResearchLab() {
   const [track, setTrack] = useState<"A" | "B">("A");
   const [selected, setSelected] = useState<string>("A2");
   const experiments = useExperiments();
+  const matrix = useExperimentMatrix();
+  const sufficiency = useSeasonalSufficiency();
+  const mx = matrix.data;
+  const sf = sufficiency.data;
   const defs = EXPERIMENT_CATALOG.filter((d) => d.track === track);
   const current: ExperimentDef | undefined =
     EXPERIMENT_CATALOG.find((d) => d.id === selected) ?? defs[0];
@@ -127,7 +146,7 @@ export function ResearchLab() {
             )}
             {m?.available && (
               <div className="overflow-x-auto">
-                <table className="w-full text-sm">
+                <table className="w-full text-sm min-w-0">
                   <thead>
                     <tr className="border-b border-line text-left text-[11px] uppercase tracking-wider text-fg-muted">
                       <th className="py-2 pr-3">Model</th>
@@ -196,6 +215,168 @@ export function ResearchLab() {
               </p>
             </Card>
           </div>
+
+          <Card
+            title="Seasonal experiment matrix (M0–M8)"
+            description="Identical eligible dates and rolling-origin folds within each track"
+          >
+            {matrix.isLoading && <LoadingBlock rows={4} />}
+            {matrix.isError && (
+              <ErrorState
+                message={(matrix.error as Error).message}
+                onRetry={() => matrix.refetch()}
+              />
+            )}
+            {mx && !mx.available && (
+              <EmptyState
+                title="Matrix unavailable"
+                description={mx.reason ?? "run scripts/run_experiment_matrix.py"}
+              />
+            )}
+            {mx?.available && (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm min-w-0">
+                  <thead>
+                    <tr className="border-b border-line text-left text-[11px] uppercase tracking-wider text-fg-muted">
+                      <th className="py-2 pr-3">Config</th>
+                      <th className="py-2 pr-3">Model</th>
+                      <th className="py-2 pr-3">n</th>
+                      <th className="py-2 pr-3">MAE</th>
+                      <th className="py-2 pr-3">RMSE</th>
+                      <th className="py-2 pr-3">MedAE</th>
+                      <th className="py-2">R²</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {(mx.metrics ?? [])
+                      .filter((row) => cell(row, "track") === track)
+                      .map((row) => (
+                        <tr
+                          key={`${cell(row, "track")}-${cell(row, "config")}`}
+                          className="border-b border-line/60"
+                        >
+                          <td className="py-2 pr-3 font-mono text-xs">
+                            {cell(row, "config")}
+                          </td>
+                          <td className="py-2 pr-3">{cell(row, "model")}</td>
+                          <td className="py-2 pr-3 font-mono text-xs">
+                            {cell(row, "n")}
+                          </td>
+                          <td className="py-2 pr-3 font-mono text-xs">
+                            {formatNumber(numeric(row, "MAE"))}
+                          </td>
+                          <td className="py-2 pr-3 font-mono text-xs">
+                            {formatNumber(numeric(row, "RMSE"))}
+                          </td>
+                          <td className="py-2 pr-3 font-mono text-xs">
+                            {formatNumber(numeric(row, "MedianAE"))}
+                          </td>
+                          <td className="py-2 font-mono text-xs">
+                            {formatNumber(numeric(row, "R2"), 3)}
+                          </td>
+                        </tr>
+                      ))}
+                  </tbody>
+                </table>
+                {(mx.metrics ?? []).filter(
+                  (row) => cell(row, "track") === track,
+                ).length === 0 && (
+                  <p className="mt-2 text-xs text-fg-muted">
+                    No configurations recorded for Track {track}.
+                  </p>
+                )}
+              </div>
+            )}
+          </Card>
+
+          <Card
+            title="Source ablation (paired)"
+            description="delta MAE = config − reference on the same dates; negative is better"
+          >
+            {mx?.available &&
+            (mx.ablations ?? []).filter(
+              (row) => cell(row, "track") === track,
+            ).length > 0 ? (
+              <ul className="space-y-1.5 text-sm">
+                {(mx.ablations ?? [])
+                  .filter((row) => cell(row, "track") === track)
+                  .map((row) => (
+                    <li
+                      key={`${cell(row, "config")}-${cell(row, "reference")}`}
+                      className="flex justify-between gap-3"
+                    >
+                      <span className="text-fg-muted">
+                        {cell(row, "config")} vs {cell(row, "reference")}
+                      </span>
+                      <span className="font-mono text-xs">
+                        {formatNumber(numeric(row, "delta_MAE"))}
+                      </span>
+                    </li>
+                  ))}
+              </ul>
+            ) : (
+              <EmptyState
+                title="Ablation unavailable"
+                description={mx?.reason}
+              />
+            )}
+          </Card>
+
+          <Card
+            title="Per-season source sufficiency"
+            description="Declared thresholds: 30 rows to compare, 90 rows for a stable seasonal estimate"
+          >
+            {sufficiency.isLoading && <LoadingBlock rows={3} />}
+            {sufficiency.isError && (
+              <ErrorState
+                message={(sufficiency.error as Error).message}
+                onRetry={() => sufficiency.refetch()}
+              />
+            )}
+            {sf && !sf.available && (
+              <EmptyState
+                title="Sufficiency unavailable"
+                description={sf.reason}
+              />
+            )}
+            {sf?.available && (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm min-w-0">
+                  <thead>
+                    <tr className="border-b border-line text-left text-[11px] uppercase tracking-wider text-fg-muted">
+                      <th className="py-2 pr-3">Season</th>
+                      <th className="py-2 pr-3">Source</th>
+                      <th className="py-2 pr-3">Observed</th>
+                      <th className="py-2 pr-3">Rows</th>
+                      <th className="py-2">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {(sf.rows ?? []).map((row) => (
+                      <tr
+                        key={`${cell(row, "season")}-${cell(row, "source")}`}
+                        className="border-b border-line/60"
+                      >
+                        <td className="py-2 pr-3">{cell(row, "season")}</td>
+                        <td className="py-2 pr-3 font-mono text-xs">
+                          {cell(row, "source")}
+                        </td>
+                        <td className="py-2 pr-3 font-mono text-xs">
+                          {cell(row, "n_observed")}
+                        </td>
+                        <td className="py-2 pr-3 font-mono text-xs">
+                          {cell(row, "n_season_rows")}
+                        </td>
+                        <td className="py-2">
+                          <StatusBadge status={cell(row, "status")} />
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </Card>
         </div>
       </div>
     </div>

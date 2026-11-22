@@ -13,6 +13,10 @@ GET /api/experiments         -> Track A metrics from results/metrics.json
 GET /api/series?start&end    -> daily series rows (date, pm25, sources)
 GET /api/coverage            -> per-source observation counts + overlap
 GET /api/manifests           -> list of run manifests with key fields
+GET /api/experiment-matrix   -> M0-M8 metrics, common dates, ablations
+GET /api/ablations           -> paired source/season ablation deltas
+GET /api/seasonal-sufficiency-> per-season per-source sufficiency
+GET /api/alignment           -> daily source coverage and missingness
 
 Run:
     python api/server.py --port 8787
@@ -103,6 +107,49 @@ def git(*args: str) -> str | None:
     except Exception:
         return None
 
+_GIT_STATUS: str | None = None
+_GIT_STATUS_AT: float = 0.0
+_METRICS_GEN: str | None = None
+_METRICS_GEN_AT: float = 0.0
+
+def _git_status_cached() -> bool:
+    """Return True if the working tree has uncommitted changes.
+    Results are cached for the process lifetime to avoid repeated git calls."""
+    global _GIT_STATUS, _GIT_STATUS_AT
+    import time as _time
+    if _time.time() - _GIT_STATUS_AT < 30:
+        return _GIT_STATUS  # type: ignore[return-value]
+    _GIT_STATUS = bool(_git_status_raw())  # type: ignore[assignment]
+    _GIT_STATUS_AT = _time.time()
+    return _GIT_STATUS
+
+def _git_status_raw() -> str | None:
+    """Raw git --porcelain call, no caching."""
+    try:
+        out = subprocess.run(
+            ["git", "status", "--porcelain"], cwd=ROOT, capture_output=True, text=True, timeout=5
+        )
+        if out.returncode != 0:
+            return None
+        return out.stdout.strip()
+    except Exception:
+        return None
+
+def _experiments_generated() -> str | None:
+    """Return metrics generated timestamp, cached to avoid repeated file reads."""
+    global _METRICS_GEN, _METRICS_GEN_AT
+    import time as _time
+    if METRICS.exists() and _time.time() - _METRICS_GEN_AT < 60:
+        return _METRICS_GEN  # type: ignore[return-value]
+    if METRICS.exists():
+        try:
+            _METRICS_GEN = METRICS.read_text(encoding="utf-8")
+            import json as _json
+            _METRICS_GEN = _json.loads(_METRICS_GEN).get("generated")
+        except Exception:
+            _METRICS_GEN = None
+    _METRICS_GEN_AT = _time.time()
+    return _METRICS_GEN
 
 def dataset_summary():
     rows = _read_csv(FUSED)
@@ -222,6 +269,139 @@ def manifests_summary():
     return {"available": bool(found), "count": len(found), "manifests": found}
 
 
+MATRIX_DIR = RESULTS / "experiment_matrix"
+SUFFICIENCY_DIR = RESULTS / "sufficiency"
+ALIGNMENT_DIR = RESULTS / "alignment"
+
+
+def _read_json(path: Path):
+    if not path.exists():
+        return None
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except Exception:
+        return None
+
+
+def _clean(value):
+    """Convert a CSV cell to JSON-safe number/bool/str/null.
+
+    NaN and blank cells become null; they are never coerced to zero. This
+    also keeps the response strictly valid JSON, which ``NaN`` is not.
+    """
+    if value is None:
+        return None
+    text = str(value)
+    if text == "":
+        return None
+    if text in ("True", "true"):
+        return True
+    if text in ("False", "false"):
+        return False
+    number = _as_number(text)
+    if number is not None:
+        return number
+    if text.lower() == "nan":
+        return None
+    return text
+
+
+def _artifact_rows(path: Path):
+    rows = _read_csv(path)
+    if rows is None:
+        return []
+    return [{key: _clean(value) for key, value in row.items()} for row in rows]
+
+
+def experiment_matrix_summary():
+    metrics = MATRIX_DIR / "matrix_metrics.csv"
+    if not metrics.exists():
+        return {
+            "available": False,
+            "reason": "run `python scripts/run_experiment_matrix.py`",
+        }
+    manifest = _read_json(MATRIX_DIR / "manifest.json") or {}
+    configs = _read_json(MATRIX_DIR / "matrix_configs.json") or {}
+    return {
+        "available": True,
+        "generated": manifest.get("generated") or manifest.get("timestamp"),
+        "run_id": manifest.get("run_id"),
+        "configs": configs,
+        "metrics": _artifact_rows(metrics),
+        "common": _artifact_rows(MATRIX_DIR / "matrix_common_metrics.csv"),
+        "by_season": _artifact_rows(MATRIX_DIR / "matrix_by_season.csv"),
+        "by_year": _artifact_rows(MATRIX_DIR / "matrix_by_year.csv"),
+        "ablations": _artifact_rows(MATRIX_DIR / "matrix_ablations.csv"),
+    }
+
+
+def ablations_summary():
+    path = MATRIX_DIR / "matrix_ablations.csv"
+    if not path.exists():
+        return {
+            "available": False,
+            "reason": "run `python scripts/run_experiment_matrix.py`",
+        }
+    return {
+        "available": True,
+        "rows": _artifact_rows(path),
+        "common": _artifact_rows(MATRIX_DIR / "matrix_common_metrics.csv"),
+    }
+
+
+def seasonal_sufficiency_summary():
+    path = SUFFICIENCY_DIR / "season_source_sufficiency.csv"
+    if not path.exists():
+        return {
+            "available": False,
+            "reason": "run `python scripts/run_season_sufficiency.py`",
+        }
+    report = _read_json(SUFFICIENCY_DIR / "season_sufficiency_report.json") or {}
+    summary = report.get("summary") or {}
+    return {
+        "available": True,
+        "rows": _artifact_rows(path),
+        "criteria": summary.get("criteria"),
+        "counts": summary.get("counts"),
+        "by_season": summary.get("by_season"),
+        "not_evaluable": summary.get("not_evaluable"),
+    }
+
+
+def alignment_summary():
+    coverage = ALIGNMENT_DIR / "daily_source_coverage.csv"
+    if not coverage.exists():
+        return {
+            "available": False,
+            "reason": "run `python scripts/run_daily_alignment.py`",
+        }
+    report = _read_json(ALIGNMENT_DIR / "daily_alignment_report.json") or {}
+    validation = report.get("validation") or {}
+    return {
+        "available": True,
+        "coverage": _artifact_rows(coverage),
+        "missingness": _artifact_rows(
+            ALIGNMENT_DIR / "daily_source_missingness.csv"
+        ),
+        "report": {
+            "rows": report.get("rows"),
+            "date_range": report.get("date_range"),
+            "rows_with_all_sources_observed": report.get(
+                "rows_with_all_sources_observed"
+            ),
+            "fraction_with_all_sources_observed": report.get(
+                "fraction_with_all_sources_observed"
+            ),
+            "rows_with_no_source_observed": report.get(
+                "rows_with_no_source_observed"
+            ),
+            "n_sources_distribution": report.get("n_sources_distribution"),
+            "per_year": report.get("per_year"),
+            "validation_passed": validation.get("passed"),
+        },
+    }
+
+
 def status_summary():
     ds = dataset_summary()
     return {
@@ -230,17 +410,13 @@ def status_summary():
             "branch": git("rev-parse", "--abbrev-ref", "HEAD"),
             "sha": git("rev-parse", "HEAD"),
             "short_sha": git("rev-parse", "--short", "HEAD"),
-            "dirty": bool(git("status", "--porcelain")),
+            "dirty": _git_status_cached(),
         },
         "dataset": ds,
         "coverage": coverage_summary(),
         "experiments": {
             "available": METRICS.exists(),
-            "generated": (
-                json.loads(METRICS.read_text(encoding="utf-8")).get("generated")
-                if METRICS.exists()
-                else None
-            ),
+            "generated": _experiments_generated(),
         },
     }
 
@@ -255,6 +431,10 @@ ROUTES = {
         (q.get("start") or [None])[0], (q.get("end") or [None])[0]
     ),
     "/api/manifests": lambda q: manifests_summary(),
+    "/api/experiment-matrix": lambda q: experiment_matrix_summary(),
+    "/api/ablations": lambda q: ablations_summary(),
+    "/api/seasonal-sufficiency": lambda q: seasonal_sufficiency_summary(),
+    "/api/alignment": lambda q: alignment_summary(),
     "/api/forecast": lambda q: forecast_endpoint(q),
 }
 def _model_needs(m: str) -> set[str]:
@@ -271,24 +451,172 @@ def _model_needs(m: str) -> set[str]:
     return needs.get(m, set())
 
 
-def forecast_endpoint(body: dict) -> dict:
-    """POST /api/forecast – basic eligibility check."""
-    import json as _json
+def _parse_forecast_payload(body: dict) -> dict | None:
+    """Parse and validate the forecast payload.
+    Returns dict with model, issue_date, horizon, or None on failure.
+    """
     try:
-        payload = body if isinstance(body, dict) else {}
+        model = body.get('model')
+        issue_date = body.get('issue_date')
+        horizon = body.get('horizon')
+        # Validate model is present
+        if not model:
+            return None
+        # Validate horizon is an integer in range 1-5
+        try:
+            horizon = int(horizon)
+        except (TypeError, ValueError):
+            horizon = 1
+        if horizon < 1 or horizon > 5:
+            horizon = 1
+        return {
+            'model': str(model),
+            'issue_date': str(issue_date) if issue_date else None,
+            'horizon': horizon,
+        }
     except Exception:
-        payload = {}
-    model = payload.get('model', 'persistence')
-    needs = _model_needs(model)
-    # Simple check: if model needs aod/merra and they're not in the data, return UNSUPPORTED
-    # Otherwise return VALIDATED
-    return {
-        'status': 'VALIDATED',
-        'forecast': 79.0,
-        'interval': None,
-        'reason': f'Model {model} checked; features: {needs}',
-        'used_features': {'pm25_history': True, 'aod': True, 'merra': True}
+        return None
+
+# Model feature requirements (same as _model_needs but used inline)
+_MODEL_NEEDS: dict[str, set[str]] = {
+    'persistence': {'pm25_history'},
+    'temporal_ml': {'pm25_history'},
+    'fusion': {'pm25_history', 'aod', 'merra'},
+}
+
+def forecast_endpoint(body: dict) -> dict:
+    """POST /api/forecast – eligibility‑checked, no fabricated prediction."""
+    payload = _parse_forecast_payload(body)
+    if payload is None:
+        return {
+            'status': 'UNSUPPORTED',
+            'forecast': None,
+            'interval': None,
+            'reason': 'Malformed or missing forecast payload.',
+            'used_features': {},
+        }
+
+    model = payload['model']
+    issue_date = payload['issue_date']
+    horizon = payload['horizon']
+
+    # 1. Model existence check
+    if model not in _MODEL_NEEDS:
+        return {
+            'status': 'UNSUPPORTED',
+            'forecast': None,
+            'interval': None,
+            'reason': f'Model "{model}" is not recognised. Valid models: {list(_MODEL_NEEDS.keys())}',
+            'used_features': {},
+        }
+
+    needs = _MODEL_NEEDS[model]
+
+    # 2. Horizon support check: published comparison only supports day 1–2
+    if horizon >= 3:
+        return {
+            'status': 'DEGRADED',
+            'forecast': None,
+            'interval': None,
+            'reason': f'Horizon {horizon} compounds error; the published comparison only supports one–two days.',
+            'used_features': {k: False for k in needs},
+        }
+
+    # 3. Retrieve series data for the issue date (std-lib only, no new deps)
+    # We read fused_dataset.csv directly, mirroring the /api/series implementation
+    rows = _read_csv(FUSED)
+    if rows is None:
+        return {
+            'status': 'ABSTAINED',
+            'forecast': None,
+            'interval': None,
+            'reason': 'fused_dataset.csv not available; cannot establish feature availability.',
+            'used_features': {k: False for k in needs},
+        }
+
+    # Find the row matching the issue date
+    point = None
+    for r in rows:
+        if r.get('Date') == issue_date:
+            point = r
+            break
+
+    if point is None:
+        return {
+            'status': 'ABSTAINED',
+            'forecast': None,
+            'interval': None,
+            'reason': f'No ground observation found for issue date {issue_date}.',
+            'used_features': {k: False for k in needs},
+        }
+
+    # 4. Feature‑availability check at issue time
+    # A feature is "observed" if its value exists and is non‑empty in the fused frame.
+    # This mirrors the /api/series availability logic.
+    def _has_value(value) -> bool:
+        return value is not None and str(value).strip() != ""
+
+    sources = {
+        'pm25_history': _has_value(point.get('PM25')),
+        'aod': _has_value(point.get('AOD')),
+        'merra': _has_value(point.get('T2M_midday')),
     }
+
+    # Check that all model‑required features are observed
+    missing: list[str] = []
+    for feature in needs:
+        if feature not in sources or not sources[feature]:
+            missing.append(feature)
+
+    if missing:
+        feature_names = {
+            'pm25_history': 'PM2.5 history',
+            'aod': 'INSAT-3D AOD',
+            'merra': 'MERRA-2 reanalysis',
+        }
+        missing_desc = ', '.join(feature_names.get(f, f) for f in missing)
+        return {
+            'status': 'UNSUPPORTED',
+            'forecast': None,
+            'interval': None,
+            'reason': f'Required feature(s) not observed: {missing_desc}.',
+            'used_features': {k: sources.get(k, False) for k in needs},
+        }
+
+    # 5. Evaluation gate: persistence vs persistence check (D-006)
+    # If model is persistence, report DEGRADED with Wilcoxon gate reference
+    if model == 'persistence':
+        return {
+            'status': 'DEGRADED',
+            'forecast': None,
+            'interval': None,
+            'reason': f'No learned model has been shown to beat persistence at p < 0.05 (D-006: Wilcoxon p = 0.1495; bootstrap 95% CI [−6.47, +1.39] spans zero).',
+            'used_features': {k: True for k in needs},
+        }
+
+    # 6. Evaluation gate: fusion ablation check (D-007)
+    if model == 'fusion':
+        # Ground‑only ablation: ground_history_only MAE 16.617 vs full ensemble 17.298
+        # Report that full ensemble does not beat its own ground-only ablation
+        return {
+            'status': 'DEGRADED',
+            'forecast': None,
+            'interval': None,
+            'reason': f'Full fusion does not beat its own ground-only ablation (ground_history_only MAE 16.617 vs full ensemble 17.298; D-007).',
+            'used_features': {k: True for k in needs},
+        }
+
+    # 7. If model exists, horizon is supported, features are available,
+    #    and no special gate applies — the repository has no inference endpoint.
+    #    Return ABSTAINED with an explicit explanation rather than fabricating.
+    return {
+        'status': 'ABSTAINED',
+        'forecast': None,
+        'interval': None,
+        'reason': f'The repository produces forecasts through offline Python scripts. There is no inference endpoint; no prediction is returned rather than inventing a value.',
+        'used_features': {k: True for k in needs},
+    }
+
 class Handler(BaseHTTPRequestHandler):
     server_version = "AeroSphinxAPI/1.0"
 
@@ -309,7 +637,7 @@ class Handler(BaseHTTPRequestHandler):
         requested_path = self.path
         
         # If the route is one of our API routes, handle as before
-        api_routes = ["/api/health", "/api/status", "/api/dataset", "/api/experiments", "/api/coverage", "/api/series", "/api/manifests", "/api/forecast"]
+        api_routes = ["/api/health", "/api/status", "/api/dataset", "/api/experiments", "/api/coverage", "/api/series", "/api/manifests", "/api/experiment-matrix", "/api/ablations", "/api/seasonal-sufficiency", "/api/alignment", "/api/forecast"]
         if requested_path in api_routes or requested_path.startswith("/api/"):
             parsed = urlparse(requested_path)
             route = ROUTES.get(parsed.path)
@@ -391,8 +719,8 @@ class Handler(BaseHTTPRequestHandler):
             payload = json.loads(body) if body else {}
             result = route(payload)
             self._json(result)
-        except Exception as exc:
-            self._json({"error": "server_error", "detail": str(exc)}, 500)
+        except Exception:
+            self._json({"error": "server_error", "detail": "an unexpected error occurred"}, 500)
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)

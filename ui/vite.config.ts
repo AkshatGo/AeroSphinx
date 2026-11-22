@@ -19,6 +19,8 @@ export default defineConfig({
         changeOrigin: true,
       },
     },
+    // @ts-ignore: historyApiFallback not in ServerOptions type for this Vite version
+    historyApiFallback: true,
   },
   test: {
     environment: "jsdom",

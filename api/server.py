@@ -324,7 +324,11 @@ def experiment_matrix_summary():
     configs = _read_json(MATRIX_DIR / "matrix_configs.json") or {}
     return {
         "available": True,
-        "generated": manifest.get("generated") or manifest.get("timestamp"),
+        "generated": (
+            manifest.get("generated_utc")
+            or manifest.get("generated")
+            or manifest.get("timestamp")
+        ),
         "run_id": manifest.get("run_id"),
         "configs": configs,
         "metrics": _artifact_rows(metrics),

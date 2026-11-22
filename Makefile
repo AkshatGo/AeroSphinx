@@ -9,7 +9,7 @@ ROOT   := $(shell pwd)
 
 .DEFAULT_GOAL := help
 .PHONY: help install install-dev test test-unit test-integration audit \
-        build-track-a run-track-a run-phase6 lint clean
+        build-track-a run-track-a run-phase6 lint check-deploy clean
 
 help: ## Show this help
 	@grep -hE '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) \
@@ -45,6 +45,9 @@ run-phase6: ## Build the fused dataset and run the Phase 6 alignment gate
 
 lint: ## Byte-compile every module as a syntax check
 	$(PYTHON) -m compileall -q src scripts tests
+
+check-deploy: ## Verify the deployment serves the local HEAD commit
+	$(PYTHON) scripts/check_deploy.py
 
 clean: ## Remove build and cache artefacts
 	rm -rf build dist *.egg-info .pytest_cache

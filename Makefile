@@ -9,7 +9,8 @@ ROOT   := $(shell pwd)
 
 .DEFAULT_GOAL := help
 .PHONY: help install install-dev test test-unit test-integration audit \
-        build-track-a run-track-a run-phase6 lint check-deploy clean
+        build-track-a run-track-a run-phase6 run-matrix run-sufficiency \
+        run-alignment lint check-deploy clean
 
 help: ## Show this help
 	@grep -hE '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) \
@@ -42,6 +43,15 @@ run-track-a: ## Run the Track A rolling-origin backtest
 
 run-phase6: ## Build the fused dataset and run the Phase 6 alignment gate
 	$(PYTHON) scripts/run_phase6_fusion.py
+
+run-matrix: ## Run the M0-M8 experiment matrix
+	$(PYTHON) scripts/run_experiment_matrix.py
+
+run-sufficiency: ## Compute per-season source sufficiency
+	$(PYTHON) scripts/run_season_sufficiency.py
+
+run-alignment: ## Emit daily coverage, missingness and alignment report
+	$(PYTHON) scripts/run_daily_alignment.py
 
 lint: ## Byte-compile every module as a syntax check
 	$(PYTHON) -m compileall -q src scripts tests

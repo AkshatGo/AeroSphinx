@@ -4,9 +4,15 @@ This file is the primary project instruction for any agent or engineer working
 on AeroSphinx. It governs the repository at
 <https://github.com/AkshatGo/AeroSphinx>.
 
-**Current phase: 6 complete — the fused dataset carries an explicit
-availability mask. Phase 7 (Track B ablations and robustness) not started.**
-See `docs/PHASE6_REPORT.md` for the fusion and availability gate,
+**Current phase: 7 complete — the M0–M8 matrix runs on identical eligible
+dates per track, and the multisource extension is delivered end to end
+(alignment artefacts, availability contract, seasonal sufficiency, API, UI).
+Phase 8 (operational covariate availability) remains blocked by D-002: AOD and
+MERRA-2 are same-day observations, so no Track B result is an operational
+forecast.**
+See `docs/PHASE7_REPORT.md` for the matrix and its negative result,
+`docs/FEATURE_AVAILABILITY_CONTRACT.md` for the per-feature contract,
+`docs/PHASE6_REPORT.md` for the fusion and availability gate,
 `docs/PHASE5_REPORT.md` for the MERRA-2 validation and the corrupt-column
 finding, `docs/PHASE4_REPORT.md` for the INSAT-3D validation, and
 `docs/PHASE3_WORKSTREAM_{A,B,C,D}.md` for the Phase 3 workstreams.
@@ -115,9 +121,13 @@ All features must obey an explicit availability contract.
 - **Phase 4** — INSAT AOD validation. *(complete)*
 - **Phase 5** — MERRA-2 validation. *(complete — short validation, no group infrastructure built)*
 - **Phase 6** — Multisource fusion and availability. *(complete)*
-- **Phase 7** — Track B ablations and robustness.
+- **Phase 7** — Track B ablations and robustness, plus the M0–M8 matrix,
+  seasonal sufficiency, alignment artefacts and their API/UI surfaces.
+  *(complete — see `docs/PHASE7_REPORT.md`)*
 - **Phase 8** — Operational covariate availability and forecasting.
-- **Phase 9** — CI, reproducibility and research reporting.
+  *(blocked: D-002; Track B stays retrospective)*
+- **Phase 9** — CI, reproducibility and research reporting. *(complete — CI
+  runs the test suite and gates; `scripts/check_deploy.py` verifies deploys)*
 
 **Never skip an acceptance gate.**
 

@@ -219,6 +219,15 @@ export function ResearchLab() {
           <Card
             title="Seasonal experiment matrix (M0–M8)"
             description="Identical eligible dates and rolling-origin folds within each track"
+            actions={
+              mx?.available ? (
+                <span className="text-right font-mono text-[11px] leading-4 text-fg-muted">
+                  {mx.run_id ?? "matrix"}
+                  <br />
+                  {mx.generated ? `generated ${mx.generated}` : "generated —"}
+                </span>
+              ) : undefined
+            }
           >
             {matrix.isLoading && <LoadingBlock rows={4} />}
             {matrix.isError && (
@@ -316,8 +325,18 @@ export function ResearchLab() {
               </ul>
             ) : (
               <EmptyState
-                title="Ablation unavailable"
-                description={mx?.reason}
+                title={
+                  mx?.available
+                    ? `No paired ablations for Track ${track}`
+                    : "Ablation unavailable"
+                }
+                description={
+                  mx?.available
+                    ? track === "A"
+                      ? "Paired source ablations are defined for Track B only: Track A has no environmental group to add or remove."
+                      : "No paired rows were recorded for this track."
+                    : mx?.reason
+                }
               />
             )}
           </Card>

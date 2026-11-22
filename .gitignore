@@ -33,3 +33,6 @@ ui/playwright-report/
 
 # Local tunnel binary and logs used for temporary previews.
 .deploy/
+
+# Local archive of the worktree; the repository itself is the source of truth.
+AeroSphinx.zip

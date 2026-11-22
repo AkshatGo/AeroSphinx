@@ -22,9 +22,10 @@ estimation rather than an operational forecast. Those are the open questions
 the two tracks exist to answer.
 
 > **Start here:** `AGENTS.md` (engineering contract) · `docs/REPOSITORY_AUDIT.md`
-> (audit) · `docs/DEFECT_REGISTER.md` (defects) · `docs/PHASE1_REPORT.md`
-> (Track A ingestion) · `docs/EXPERIMENT_PROTOCOL.md` (how experiments must
-> be run).
+> (audit) · `docs/DEFECT_REGISTER.md` (defects) · `docs/PHASE7_REPORT.md`
+> (matrix and its negative result) · `docs/FEATURE_AVAILABILITY_CONTRACT.md`
+> (per-feature availability) · `docs/EXPERIMENT_PROTOCOL.md` (how experiments
+> must be run).
 
 ---
 
@@ -32,10 +33,14 @@ the two tracks exist to answer.
 
 ```bash
 make install-dev          # install the package and test dependencies
-make test                 # 202 tests
+make test                 # 253 Python tests
 make build-track-a        # build the Track A daily dataset and manifest
 make run-track-a          # run the Track A rolling-origin backtest
 make run-phase6           # build the fused dataset and run the availability gate
+make run-matrix           # run the M0-M8 matrix on identical eligible dates
+make run-sufficiency      # per-season source sufficiency
+make run-alignment        # daily coverage, missingness and alignment report
+make check-deploy         # deployed commit == local HEAD
 ```
 
 Runtime is roughly two to four minutes on a standard laptop CPU. No GPU and no
@@ -54,10 +59,31 @@ documented, quantified cold-start effect.
 Phase 6 publishes the fused Track B dataset with an explicit availability
 mask: all 2,979 ground rows are preserved, missing environmental values are
 never filled, and all three sources are observed together on only 139 rows
-(4.7%). Track B ablations are Phase 7 and are not yet run.
+(4.7%).
+
+Phase 7 runs the M0–M8 ladder on identical eligible dates within each track.
+Track A's ridge model beats persistence by 0.65 MAE over 2,615 matched
+predictions (21.44 vs 22.09). Track B's environmental groups do not: on the 49
+dates where every configuration predicts, adding AOD costs 0.21 MAE, MERRA-2
+costs 4.24, and full fusion costs 4.70 relative to the ground-only ridge. The
+result is negative, and is reported as such.
 
 Full analysis: `docs/PHASE2_REPORT.md` (Track A), `docs/PHASE6_REPORT.md`
-(fusion and availability).
+(fusion and availability), `docs/PHASE7_REPORT.md` (matrix, ablations,
+sufficiency), `docs/FEATURE_AVAILABILITY_CONTRACT.md` (per-feature contract).
+
+### Web application
+
+`api/server.py` serves 12 read-only routes over the persisted artefacts, and
+the Vite frontend in `ui/` renders them in ten modules. Nothing is fabricated:
+an unavailable artefact produces an explicit empty state. The forecast endpoint
+abstains rather than inventing a value.
+
+```bash
+python api/server.py            # API + built frontend on :8000
+cd ui && npm ci && npm run dev  # frontend dev server on :5173
+make check-deploy               # verify the deployment matches local HEAD
+```
 
 ### Legacy chapter pipeline
 
@@ -113,8 +139,10 @@ src/aerosphinx/            The research package
   features/availability.py Availability-masked multisource fusion and gate
   evaluation/              Splits, metrics, paired uncertainty quantification
   models/                  Baselines and supervised regressors
-  tracks/                  Track A experiment runner and regime diagnostics
-  quality/                 Coverage analysis and run provenance
+  features/seasonal.py     Single season and season-year definition
+  tracks/                  Track A runner, regime diagnostics, M0-M8 matrix
+  evaluation/sufficiency.py Per-season x source SUFFICIENT/INSUFFICIENT status
+  quality/                 Coverage analysis, alignment and run provenance
 data/cpcb/                 CPCB hourly PM2.5 exports, Faridabad, 2016-2024
 data/aod/                  INSAT-3D Imager L2G AOD V02R00 granules (HDF5)
 data/merra2/               MERRA-2 tavg1_2d_slv_Nx granules (NetCDF)

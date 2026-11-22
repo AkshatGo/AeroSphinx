@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { useSeries, useStatus } from "@/lib/queries";
+import { useForecasts, useSeries, useStatus } from "@/lib/queries";
 import {
   Card,
   EmptyState,
@@ -20,6 +20,7 @@ const MODELS: Array<{ id: string; name: string; needs: string[] }> = [
 
 export function ForecastStudio() {
   const status = useStatus();
+  const forecasts = useForecasts();
   const [issueDate, setIssueDate] = useState<string>("");
   const [horizon, setHorizon] = useState(1);
   const [model, setModel] = useState<string>("persistence");
@@ -292,6 +293,108 @@ export function ForecastStudio() {
           </Card>
         </div>
       </div>
+
+      <Card
+        title="Persisted projections"
+        description="Read-only rows from results/. These are retrospective projections, not operational forecasts (D-016)."
+      >
+        {forecasts.isLoading && <LoadingBlock rows={3} />}
+        {forecasts.isError && (
+          <ErrorState
+            message={(forecasts.error as Error).message}
+            onRetry={() => forecasts.refetch()}
+          />
+        )}
+        {!forecasts.isLoading && !forecasts.isError && !forecasts.data?.available && (
+          <EmptyState
+            title="No persisted projection"
+            description={forecasts.data?.reason ?? "No forecast projection artifact is present."}
+          />
+        )}
+        {forecasts.data?.available && (
+          <div className="space-y-6">
+            <div>
+              <h3 className="mb-2 text-sm font-medium text-fg">
+                Operational forward projection ({forecasts.data.operational?.path})
+              </h3>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-line text-left text-[11px] uppercase tracking-wider text-fg-muted">
+                      <th className="py-2 pr-3">Date</th>
+                      <th className="py-2 pr-3">Horizon</th>
+                      <th className="py-2 pr-3">Predicted PM2.5</th>
+                      <th className="py-2 pr-3">AQI class</th>
+                      <th className="py-2">Meteorology</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {(forecasts.data.operational?.rows ?? []).map((r, i) => (
+                      <tr key={i} className="border-b border-line/60">
+                        <td className="py-2 pr-3 font-mono text-xs">{String(r.Date ?? r.date ?? "—")}</td>
+                        <td className="py-2 pr-3 font-mono text-xs">{String(r.horizon_day ?? "—")}</td>
+                        <td className="py-2 pr-3 font-mono text-xs">
+                          {typeof r.predicted_PM25 === "number"
+                            ? r.predicted_PM25.toFixed(1)
+                            : String(r.predicted_PM25 ?? "—")}
+                        </td>
+                        <td className="py-2 pr-3">{String(r.predicted_AQI_class ?? "—")}</td>
+                        <td className="py-2 text-xs text-fg-muted">
+                          {String(r.meteorology_source ?? "—")}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <div>
+              <h3 className="mb-2 text-sm font-medium text-fg">
+                Five-day recursive projection ({forecasts.data.recursive?.path})
+              </h3>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-line text-left text-[11px] uppercase tracking-wider text-fg-muted">
+                      <th className="py-2 pr-3">Date</th>
+                      <th className="py-2 pr-3">Horizon</th>
+                      <th className="py-2 pr-3">Actual PM2.5</th>
+                      <th className="py-2 pr-3">Predicted PM2.5</th>
+                      <th className="py-2 pr-3">Abs. error</th>
+                      <th className="py-2">AQI class</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {(forecasts.data.recursive?.rows ?? []).map((r, i) => (
+                      <tr key={i} className="border-b border-line/60">
+                        <td className="py-2 pr-3 font-mono text-xs">{String(r.Date ?? r.date ?? "—")}</td>
+                        <td className="py-2 pr-3 font-mono text-xs">{String(r.horizon_day ?? "—")}</td>
+                        <td className="py-2 pr-3 font-mono text-xs">
+                          {typeof r.actual_PM25 === "number"
+                            ? r.actual_PM25.toFixed(1)
+                            : String(r.actual_PM25 ?? "—")}
+                        </td>
+                        <td className="py-2 pr-3 font-mono text-xs">
+                          {typeof r.predicted_PM25 === "number"
+                            ? r.predicted_PM25.toFixed(1)
+                            : String(r.predicted_PM25 ?? "—")}
+                        </td>
+                        <td className="py-2 pr-3 font-mono text-xs">
+                          {typeof r.absolute_error === "number"
+                            ? r.absolute_error.toFixed(1)
+                            : String(r.absolute_error ?? "—")}
+                        </td>
+                        <td className="py-2">{String(r.predicted_AQI_class ?? "—")}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
+      </Card>
     </div>
   );
 }

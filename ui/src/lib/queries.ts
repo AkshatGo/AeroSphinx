@@ -11,6 +11,7 @@ export const queryKeys = {
   ablations: ["ablations"] as const,
   seasonalSufficiency: ["seasonal-sufficiency"] as const,
   alignment: ["alignment"] as const,
+  forecasts: ["forecasts"] as const,
   series: (start: string, end: string) => ["series", start, end] as const,
 };
 
@@ -82,6 +83,14 @@ export function useAlignment() {
   return useQuery({
     queryKey: queryKeys.alignment,
     queryFn: ({ signal }) => api.alignment(signal),
+    staleTime: 60_000,
+  });
+}
+
+export function useForecasts() {
+  return useQuery({
+    queryKey: queryKeys.forecasts,
+    queryFn: ({ signal }) => api.forecasts(signal),
     staleTime: 60_000,
   });
 }

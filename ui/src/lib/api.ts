@@ -199,6 +199,18 @@ export const SufficiencySchema = z.object({
     .optional(),
 });
 
+export const ForecastProjectionSchema = z.object({
+  path: z.string(),
+  rows: z.array(ArtifactRowSchema),
+});
+
+export const ForecastsSchema = z.object({
+  available: z.boolean(),
+  reason: z.string().optional(),
+  operational: ForecastProjectionSchema.optional(),
+  recursive: ForecastProjectionSchema.optional(),
+});
+
 export const AlignmentSchema = z.object({
   available: z.boolean(),
   reason: z.string().optional(),
@@ -248,4 +260,6 @@ export const api = {
     getJson("/seasonal-sufficiency", SufficiencySchema, signal),
   alignment: (signal?: AbortSignal) =>
     getJson("/alignment", AlignmentSchema, signal),
+  forecasts: (signal?: AbortSignal) =>
+    getJson("/forecasts", ForecastsSchema, signal),
 };

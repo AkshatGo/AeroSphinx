@@ -26,6 +26,7 @@ const { api } = vi.hoisted(() => ({
     ablations: vi.fn(),
     seasonalSufficiency: vi.fn(),
     alignment: vi.fn(),
+    forecasts: vi.fn(),
   },
 }));
 
@@ -64,6 +65,12 @@ beforeEach(() => {
   api.ablations.mockResolvedValue(mockAblations);
   api.seasonalSufficiency.mockResolvedValue(mockSufficiency);
   api.alignment.mockResolvedValue(mockAlignment);
+  api.forecasts.mockResolvedValue({
+    available: false,
+    reason: "no persisted forecast projection found under results/",
+    operational: { path: "results/operational_forward_forecast.csv", rows: [] },
+    recursive: { path: "results/five_day_recursive_forecast.csv", rows: [] },
+  });
 });
 
 describe("Command Center", () => {

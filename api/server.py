@@ -406,6 +406,32 @@ def alignment_summary():
     }
 
 
+def forecasts_summary():
+    """Persisted forecast projections read verbatim from results/."""
+    operational_path = RESULTS / "operational_forward_forecast.csv"
+    recursive_path = RESULTS / "five_day_recursive_forecast.csv"
+    operational_rows = _artifact_rows(operational_path)
+    recursive_rows = _artifact_rows(recursive_path)
+    if not operational_rows and not recursive_rows:
+        return {
+            "available": False,
+            "reason": "no persisted forecast projection found under results/",
+            "operational": {"path": str(operational_path.relative_to(ROOT)), "rows": []},
+            "recursive": {"path": str(recursive_path.relative_to(ROOT)), "rows": []},
+        }
+    return {
+        "available": True,
+        "operational": {
+            "path": str(operational_path.relative_to(ROOT)),
+            "rows": operational_rows,
+        },
+        "recursive": {
+            "path": str(recursive_path.relative_to(ROOT)),
+            "rows": recursive_rows,
+        },
+    }
+
+
 def status_summary():
     ds = dataset_summary()
     return {
@@ -440,6 +466,7 @@ ROUTES = {
     "/api/seasonal-sufficiency": lambda q: seasonal_sufficiency_summary(),
     "/api/alignment": lambda q: alignment_summary(),
     "/api/forecast": lambda q: forecast_endpoint(q),
+    "/api/forecasts": lambda q: forecasts_summary(),
 }
 def _model_needs(m: str) -> set[str]:
     """Return the feature set a model requires.

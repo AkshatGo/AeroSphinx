@@ -128,8 +128,21 @@ def _git_status_cached() -> bool:
     return _GIT_STATUS
 
 
+#: Path prefixes whose modification does not mean "this deployment is running
+#: uncommitted science". A Render build runs `npm ci`, which can rewrite the
+#: lockfile under a different npm version, and the deploy tree carries build
+#: output that is gitignored in a developer checkout. Neither changes a number.
+_BUILD_NOISE = (
+    "ui/package-lock.json",
+    "ui/node_modules",
+    "ui/dist",
+    ".venv",
+    "node_modules",
+)
+
+
 def _git_status_raw() -> str | None:
-    """Raw git --porcelain call, no caching."""
+    """Porcelain status, minus build-tree noise. No caching."""
     try:
         out = subprocess.run(
             ["git", "status", "--porcelain"],
@@ -140,7 +153,13 @@ def _git_status_raw() -> str | None:
         )
         if out.returncode != 0:
             return None
-        return out.stdout.strip()
+        lines = [
+            line
+            for line in out.stdout.splitlines()
+            if line.strip()
+            and not any(line[3:].strip().strip('"').startswith(p) for p in _BUILD_NOISE)
+        ]
+        return "\n".join(lines)
     except Exception:
         return None
 

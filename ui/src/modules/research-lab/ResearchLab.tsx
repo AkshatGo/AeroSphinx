@@ -27,6 +27,27 @@ function numeric(row: ArtifactRow, key: string) {
   return typeof value === "number" ? value : null;
 }
 
+function interval(row: ArtifactRow) {
+  const low = numeric(row, "ci_low");
+  const high = numeric(row, "ci_high");
+  if (low === null || high === null) return null;
+  const signed = (value: number) => `${value >= 0 ? "+" : ""}${value.toFixed(2)}`;
+  return `[${signed(low)}, ${signed(high)}]`;
+}
+
+/** A paired difference is only called out when its interval excludes zero. */
+function verdict(row: ArtifactRow) {
+  if (cell(row, "reported").toLowerCase() === "false") {
+    return "suppressed (n too small)";
+  }
+  // The API passes CSV cells through unchanged, so a boolean can arrive as
+  // the string "True"; tolerate both spellings rather than depending on it.
+  const significant = cell(row, "significant").toLowerCase() === "true";
+  const p = numeric(row, "p_holm");
+  if (p === null) return significant ? "significant" : "not significant";
+  return `${significant ? "significant" : "not significant"} · Holm p ${p.toFixed(3)}`;
+}
+
 export function ResearchLab() {
   const [track, setTrack] = useState<"A" | "B">("A");
   const [selected, setSelected] = useState<string>("A2");
@@ -199,20 +220,55 @@ export function ResearchLab() {
             </Card>
 
             <Card
-              title="Statistical comparison"
-              description="Documented in D-006 (Phase 2); not carried in the current metrics.json"
+              title="Track A: learned model vs persistence"
+              description="Paired difference from the matrix artefacts, per track"
             >
-              <dl className="grid grid-cols-2 gap-3">
-                <Metric label="Wilcoxon p (ensemble vs persistence)" value="0.1495" />
-                <Metric label="Bootstrap 95% CI" value="[-6.47, +1.39]" />
-                <Metric label="Test rows" value={m?.split?.n_test ?? "—"} />
-                <Metric label="Train rows" value={m?.split?.n_train ?? "—"} />
-              </dl>
-              <p className="mt-3 text-xs text-fg-muted">
-                The interval spans zero, so the ensemble is not shown to beat
-                persistence (D-006). Values above are quoted from the defect
-                register; the run artifact exposes MAE/RMSE/R² only.
-              </p>
+              {(() => {
+                const row = (mx?.ablations ?? []).find(
+                  (candidate) =>
+                    cell(candidate, "track") === track &&
+                    cell(candidate, "config") === "M1" &&
+                    cell(candidate, "reference") === "M0",
+                );
+                if (!row) {
+                  return (
+                    <EmptyState
+                      title="No paired comparison for this track"
+                      description={mx?.reason}
+                    />
+                  );
+                }
+                return (
+                  <>
+                    <dl className="grid grid-cols-2 gap-3">
+                      <Metric
+                        label="Δ MAE (ridge − persistence)"
+                        value={formatNumber(numeric(row, "delta_MAE"))}
+                      />
+                      <Metric label="Pairs" value={cell(row, "n")} />
+                      <Metric label="95% interval (days)" value={interval(row) ?? "—"} />
+                      <Metric
+                        label="95% interval (years)"
+                        value={
+                          numeric(row, "year_ci_low") === null
+                            ? "—"
+                            : `[${numeric(row, "year_ci_low")!.toFixed(2)}, ${numeric(
+                                row,
+                                "year_ci_high",
+                              )!.toFixed(2)}]`
+                        }
+                      />
+                    </dl>
+                    <p className="mt-3 text-xs text-fg-muted">
+                      {verdict(row)}. A negative Δ means the learned model is
+                      better. The day-level interval resamples contiguous blocks;
+                      the year-level interval resamples whole calendar years and is
+                      the conservative test, because eight years is a small number
+                      of resampling units.
+                    </p>
+                  </>
+                );
+              })()}
             </Card>
           </div>
 
@@ -317,8 +373,14 @@ export function ResearchLab() {
                       <span className="text-fg-muted">
                         {cell(row, "config")} vs {cell(row, "reference")}
                       </span>
-                      <span className="font-mono text-xs">
-                        {formatNumber(numeric(row, "delta_MAE"))}
+                      <span className="flex flex-col items-end font-mono text-xs">
+                        <span>{formatNumber(numeric(row, "delta_MAE"))}</span>
+                        <span className="text-[10px] text-fg-muted">
+                          {interval(row) ?? "interval —"}
+                        </span>
+                        <span className="text-[10px] text-fg-muted">
+                          {verdict(row)}
+                        </span>
                       </span>
                     </li>
                   ))}

@@ -118,6 +118,25 @@ describe("Research Lab", () => {
     expect(await screen.findByText("RandomForest")).toBeInTheDocument();
     expect(screen.getByText("16.94")).toBeInTheDocument();
   });
+
+  it("shows the paired interval and the year-robust view for the Track A comparison", async () => {
+    renderWithProviders(<ResearchLab />);
+    // The card reads the ablation artefact, never a hard-coded p-value.
+    expect(await screen.findByText(/Δ MAE \(ridge − persistence\)/i)).toBeInTheDocument();
+    expect(screen.getAllByText("[-1.14, -0.17]").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("[-1.20, 0.06]").length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/significant · Holm p 0\.008/).length).toBeGreaterThan(0);
+  });
+
+  it("says plainly when an ablation is not distinguishable from zero", async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<ResearchLab />);
+    await user.click(await screen.findByRole("button", { name: /Track B/i }));
+    expect(
+      (await screen.findAllByText(/not significant · Holm p 0\.340/)).length,
+    ).toBeGreaterThan(0);
+    expect(screen.getAllByText("[+0.30, +10.41]").length).toBeGreaterThan(0);
+  });
 });
 
 describe("Data Observatory", () => {

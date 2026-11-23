@@ -57,12 +57,13 @@ checks against.
 The canonical Track A result is the M0–M8 matrix: 97 rolling-origin folds over
 the full nine-year record, with 2,615 matched predictions for every
 configuration. Ridge on ground history plus calendar reaches **21.44 MAE
-against persistence's 22.09**. The 0.65 advantage does not survive the paired
-significance test, so the established statement is that **no learned model
-beats persistence at one day**. The gain is seasonal — it holds in winter,
-pre-monsoon and post-monsoon and reverses in monsoon — and a tree ensemble's
-inability to predict outside its training range is a documented, quantified
-cold-start effect.
+against persistence's 22.09**, a delta of -0.65 whose day-level block bootstrap
+interval [-1.14, -0.17] excludes zero. Resampling whole calendar years instead
+of days widens it to [-1.20, +0.06], which does not. The honest reading is
+therefore narrow: a gain of about 3% of the observed MAE, which holds in
+winter, pre-monsoon and post-monsoon, reverses in monsoon, and is not robust to
+which years happen to be in the record. It is not a general improvement in
+day-ahead skill.
 
 That matrix figure is the published Track A comparison. `scripts/run-track-a`
 is a protocol-discovery tool with a narrower eligible set (2,510 predictions,
@@ -76,15 +77,17 @@ never filled, and all three sources are observed together on only 139 rows
 (4.7%).
 
 Phase 7 runs the M0–M8 ladder on identical eligible dates within each track.
-On Track B the ground-only learned model does not even beat persistence
-(28.59 against 22.98) across the 80 fused dates. On the 49 dates where every
-configuration predicts, adding AOD costs 0.21 MAE, MERRA-2 costs 4.24, and
-full fusion costs 4.70 relative to the ground-only ridge. **None of those
-differences is significant** — not on a paired moving-block bootstrap, and not
-after Holm correction across the ablation family (AOD interval [−2.19, +2.61];
-fusion Holm-adjusted p = 0.31). The result is negative and underpowered, and
-is now reported as both: the correct claim is not "fusion costs 4.70 MAE" but
-"no environmental ablation is distinguishable from zero on 49 days".
+On Track B's 80 fused dates persistence scores 22.98 and the ground-only ridge
+28.59, but on the 49 dates where every configuration predicts the two are
+indistinguishable (-0.25, interval [-5.66, +5.11]); the 5.6 MAE gap is
+concentrated in the 31 dates outside that common set, which is exactly the
+informative-missingness structure the protocol exists to expose. On those 49
+dates adding AOD changes MAE by +0.21 [-2.19, +2.61], MERRA-2 by +4.24
+[+1.26, +7.18] (Holm-adjusted p = 0.06) and full fusion by +4.70
+[+0.30, +10.41] (Holm-adjusted p = 0.34). **No environmental ablation is
+distinguishable from zero.** The result is negative and underpowered, and is
+now reported as both: not "fusion costs 4.70 MAE" but "nothing here separates
+fusion from the ground-only model on 49 days".
 
 Full analysis: `docs/PHASE2_REPORT.md` (Track A), `docs/PHASE6_REPORT.md`
 (fusion and availability), `docs/PHASE7_REPORT.md` (matrix, ablations,

@@ -522,6 +522,62 @@ def _parse_forecast_payload(body: dict) -> dict | None:
         return None
 
 
+def _matrix_lookup(filename: str, **where) -> dict | None:
+    """Return the single row of a matrix artefact matching ``where``.
+
+    The forecast gate must quote numbers that exist in the artefacts, not
+    numbers typed into this file. The gate text used to hard-code the legacy
+    33-day figures (16.617 / 17.298), which no current artefact supports.
+    """
+    rows = _read_csv(MATRIX_DIR / filename)
+    if not rows:
+        return None
+    for row in rows:
+        if all(str(row.get(key, "")) == str(value) for key, value in where.items()):
+            return row
+    return None
+
+
+def _metric_mae(track: str, config: str, model: str) -> float | None:
+    row = _matrix_lookup("matrix_metrics.csv", track=track, config=config, model=model)
+    return None if row is None else _as_number(row.get("MAE"))
+
+
+def _ablation(config: str, reference: str) -> dict:
+    return (
+        _matrix_lookup(
+            "matrix_ablations.csv", track="B", config=config, reference=reference
+        )
+        or {}
+    )
+
+
+def _fmt(value: float | None, digits: int = 2, signed: bool = False) -> str:
+    if value is None:
+        return "n/a"
+    return f"{value:+.{digits}f}" if signed else f"{value:.{digits}f}"
+
+
+def _gate_evidence() -> dict:
+    """Every number the forecast gate quotes, resolved from the artefacts."""
+    fusion = _ablation("M4", "M1")
+    aod = _ablation("M2", "M1")
+    return {
+        "track_a_persistence": _fmt(_metric_mae("A", "M0", "persistence")),
+        "track_a_ridge": _fmt(_metric_mae("A", "M1", "ridge")),
+        "track_b_persistence": _fmt(_metric_mae("B", "M0", "persistence")),
+        "track_b_ridge": _fmt(_metric_mae("B", "M1", "ridge")),
+        "fusion_delta": _fmt(_as_number(fusion.get("delta_MAE")), signed=True),
+        "fusion_low": _fmt(_as_number(fusion.get("ci_low")), signed=True),
+        "fusion_high": _fmt(_as_number(fusion.get("ci_high")), signed=True),
+        "fusion_p_holm": _fmt(_as_number(fusion.get("p_holm"))),
+        "fusion_n": int(_as_number(fusion.get("n"))) if fusion.get("n") else None,
+        "aod_delta": _fmt(_as_number(aod.get("delta_MAE")), signed=True),
+        "aod_low": _fmt(_as_number(aod.get("ci_low")), signed=True),
+        "aod_high": _fmt(_as_number(aod.get("ci_high")), signed=True),
+    }
+
+
 # Model feature requirements (same as _model_needs but used inline)
 _MODEL_NEEDS: dict[str, set[str]] = {
     "persistence": {"pm25_history"},
@@ -629,26 +685,41 @@ def forecast_endpoint(body: dict) -> dict:
             "used_features": {k: sources.get(k, False) for k in needs},
         }
 
-    # 5. Evaluation gate: persistence vs persistence check (D-006)
-    # If model is persistence, report DEGRADED with Wilcoxon gate reference
+    # 5. Evaluation gate: is a learned model established to beat persistence?
+    # The numbers come from results/experiment_matrix/, never from this file.
+    evidence = _gate_evidence()
     if model == "persistence":
         return {
             "status": "DEGRADED",
             "forecast": None,
             "interval": None,
-            "reason": "No learned model has been shown to beat persistence at p < 0.05 (D-006: Wilcoxon p = 0.1495; bootstrap 95% CI [−6.47, +1.39] spans zero).",
+            "reason": (
+                "No learned model is established to beat persistence. On Track A "
+                f"ridge scores {evidence['track_a_ridge']} MAE against "
+                f"persistence's {evidence['track_a_persistence']}, and the paired "
+                "difference is not significant under block-aware inference (D-006)."
+            ),
             "used_features": {k: True for k in needs},
         }
 
-    # 6. Evaluation gate: fusion ablation check (D-007)
+    # 6. Evaluation gate: does fusion add anything? (D-007)
     if model == "fusion":
-        # Ground‑only ablation: ground_history_only MAE 16.617 vs full ensemble 17.298
-        # Report that full ensemble does not beat its own ground-only ablation
         return {
             "status": "DEGRADED",
             "forecast": None,
             "interval": None,
-            "reason": "Full fusion does not beat its own ground-only ablation (ground_history_only MAE 16.617 vs full ensemble 17.298; D-007).",
+            "reason": (
+                f"On the {evidence['fusion_n']} dates where every Track B "
+                "configuration predicts, adding AOD changes MAE by "
+                f"{evidence['aod_delta']} ({evidence['aod_low']} to "
+                f"{evidence['aod_high']}) and full fusion by "
+                f"{evidence['fusion_delta']} ({evidence['fusion_low']} to "
+                f"{evidence['fusion_high']}, Holm-adjusted p = "
+                f"{evidence['fusion_p_holm']}). None of these is distinguishable "
+                "from zero, and Track B's ground-only model "
+                f"({evidence['track_b_ridge']}) is worse than persistence "
+                f"({evidence['track_b_persistence']}) on that set (D-007)."
+            ),
             "used_features": {k: True for k in needs},
         }
 

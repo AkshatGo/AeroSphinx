@@ -19,6 +19,7 @@ Usage::
     aerosphinx run-fusion            # Phase 6 fused dataset and gate
     aerosphinx run-matrix            # M0-M8 experiment matrix
     aerosphinx check-claims          # README numbers vs persisted artefacts
+    aerosphinx check-reproducibility # re-run the matrix, compare with results/
     aerosphinx serve --port 8787     # API + built frontend
 
 Subcommands that need the raw inputs print the missing path and exit
@@ -49,6 +50,7 @@ _SCRIPTS = {
     "run-sufficiency": ["run_season_sufficiency.py"],
     "run-alignment": ["run_daily_alignment.py"],
     "check-claims": ["check_claims.py"],
+    "check-reproducibility": ["check_reproducibility.py"],
     "check-deploy": ["check_deploy.py"],
 }
 
@@ -150,6 +152,10 @@ def build_parser() -> argparse.ArgumentParser:
         ("run-sufficiency", "compute per-season source sufficiency"),
         ("run-alignment", "emit daily coverage, missingness and alignment report"),
         ("check-claims", "verify README numbers against persisted artefacts"),
+        (
+            "check-reproducibility",
+            "re-run the matrix and compare it with the committed artefacts",
+        ),
         ("check-deploy", "verify the deployment serves the local HEAD commit"),
     ]:
         child = sub.add_parser(name, help=help_text, description=help_text)

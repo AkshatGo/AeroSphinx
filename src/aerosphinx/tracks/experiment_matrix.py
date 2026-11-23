@@ -32,6 +32,7 @@ import pandas as pd
 from aerosphinx.evaluation.block_inference import (
     holm_bonferroni,
     moving_block_bootstrap_ci,
+    year_blocked_bootstrap_ci,
 )
 from aerosphinx.evaluation.metrics import evaluate
 from aerosphinx.evaluation.splits import rolling_origin_folds
@@ -165,6 +166,10 @@ MATRIX: dict[str, MatrixConfig] = {
 
 #: Pairs compared for the source ablation. Negative delta = first is better.
 ABLATION_PAIRS: tuple[tuple[str, str], ...] = (
+    # Track A: the learned ground-only model against persistence. This is the
+    # pair behind the paper's Track A headline, so it carries the same
+    # block-aware interval as every Track B ablation.
+    ("M1", "M0"),
     ("M2", "M1"),
     ("M3", "M1"),
     ("M4", "M1"),
@@ -431,6 +436,8 @@ def _empty_frames() -> dict[str, pd.DataFrame]:
                 "ci_low",
                 "ci_high",
                 "block_length_days",
+                "year_ci_low",
+                "year_ci_high",
                 "p_value",
                 "p_holm",
                 "significant",
@@ -584,6 +591,11 @@ def _ablate(aligned) -> pd.DataFrame:
             b = common[reference].to_numpy(dtype=float)
             n = int(np.isfinite(y).sum())
             interval = moving_block_bootstrap_ci(y, a, b, dates=dates)
+            # The conservative check: resample whole calendar years. Eight
+            # years is a small number of resampling units, so this interval is
+            # much wider than the day-level one and is the honest guard against
+            # a single season carrying the whole difference.
+            yearly = year_blocked_bootstrap_ci(y, a, b, dates=dates)
             p_a_better = interval.get("p_a_better", float("nan"))
             p_value = (
                 float(min(1.0, 2 * min(p_a_better, 1 - p_a_better)))
@@ -605,6 +617,12 @@ def _ablate(aligned) -> pd.DataFrame:
                         float(interval["ci_high"]) if reportable else float("nan")
                     ),
                     "block_length_days": int(interval.get("block_length", 0)),
+                    "year_ci_low": (
+                        float(yearly["ci_low"]) if reportable else float("nan")
+                    ),
+                    "year_ci_high": (
+                        float(yearly["ci_high"]) if reportable else float("nan")
+                    ),
                     "p_value": p_value if reportable else float("nan"),
                     "reported": reportable,
                 }

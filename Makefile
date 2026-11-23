@@ -6,20 +6,29 @@
 PYTHON ?= .venv/bin/python
 PIP    ?= .venv/bin/python -m pip
 ROOT   := $(shell pwd)
+# Interpreter used to create the venv itself. Never the venv's own python.
+BASE_PYTHON ?= python3
 
 .DEFAULT_GOAL := help
-.PHONY: help install install-dev test test-unit test-integration audit \
+.PHONY: help venv install install-dev test test-unit test-integration audit \
         build-track-a run-track-a run-phase6 run-matrix run-sufficiency \
         run-alignment lint fmt check-claims check-deploy verify clean
+
+venv: .venv/bin/python ## Create the virtual environment if it is absent
 
 help: ## Show this help
 	@grep -hE '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) \
 		| awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-18s\033[0m %s\n", $$1, $$2}'
 
-install: ## Install the package
+.venv/bin/python:
+	@echo "creating .venv with $(BASE_PYTHON)"
+	$(BASE_PYTHON) -m venv .venv
+	$(PIP) install --quiet --upgrade pip
+
+install: .venv/bin/python ## Install the package
 	$(PIP) install -e .
 
-install-dev: ## Install the package with test dependencies
+install-dev: .venv/bin/python ## Install the package with test dependencies
 	$(PIP) install -e ".[dev]"
 
 test: ## Run the full test suite

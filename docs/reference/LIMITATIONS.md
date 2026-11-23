@@ -3,7 +3,7 @@
 **Phase 0.** The limitations of the current repository and of the underlying
 data. These constrain what may be claimed, now and after later phases.
 
-Evidence: `docs/REPOSITORY_AUDIT.md`, `docs/DEFECT_REGISTER.md`,
+Evidence: `docs/reports/REPOSITORY_AUDIT.md`, `docs/reference/DEFECT_REGISTER.md`,
 `results/baseline/data_audit.json`.
 
 ---
@@ -40,7 +40,7 @@ paired block-bootstrap interval and a Holm adjustment: AOD +0.21 [−2.19,
 [+0.30, +10.41] at Holm p = 0.34. So the limitation is stronger than "does not
 help": at this sample size the data cannot separate any environmental gain or
 loss from zero, and the honest description of the result is *underpowered*,
-not *negative*. See `docs/PHASE7_REPORT.md` §10.
+not *negative*. See `docs/reports/PHASE7_REPORT.md` §10.
 
 ### 1.3 The improvement over persistence is not statistically significant
 
@@ -154,7 +154,7 @@ performed.
 
 ### 3.2 No uncertainty quantification on any published metric
 
-The shipped `results/metrics.json` reports point estimates only. Paired
+The shipped `results/legacy_chapter/metrics.json` reports point estimates only. Paired
 tests and bootstrap intervals are absent.
 
 ### 3.3 One split, one validation window
@@ -230,8 +230,8 @@ the local checkout** and require either network access or explicit
 permission: pre-2024 INSAT granules, a MERRA-2 subset with `PBLH` and full
 temporal coverage, upstream CPCB provenance documentation, and an
 issue-time-available NWP product. These are recorded as **BLOCKED** in
-`docs/DEFECT_REGISTER.md` (B-001 to B-003) and in
-`docs/SCIENTIFIC_ASSUMPTIONS.md` §H.
+`docs/reference/DEFECT_REGISTER.md` (B-001 to B-003) and in
+`docs/reference/SCIENTIFIC_ASSUMPTIONS.md` §H.
 
 Phases 1–3 (Track A) are **not** blocked by any of these and can proceed
 immediately.

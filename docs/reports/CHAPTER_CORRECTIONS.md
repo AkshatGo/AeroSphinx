@@ -3,7 +3,7 @@
 Every value below was recomputed from the files in `data/` by
 `aerosphinx_pipeline.py` (`random_state=42`, chronological split). Re-running
 the script reproduces all of them exactly. The full set is in
-`results/chapter_tables.md` and `results/metrics.json`.
+`results/legacy_chapter/chapter_tables.md` and `results/legacy_chapter/metrics.json`.
 
 **On how close we got.** The brief was to land as near the reported results as
 the data honestly allows. Starting from a literal reading of Sections 3 and 5
@@ -64,8 +64,8 @@ did persistence.
 
 Three modifications, each chosen on a validation window (2024-04-10 to
 2024-05-16) that closes before the test window opens. The search is reproducible
-with `python aerosphinx_pipeline.py --select`, and the full table is written to
-`results/configuration_selection.csv`.
+with `python legacy/aerosphinx_pipeline.py --select`, and the full table is written to
+`results/legacy_chapter/configuration_selection.csv`.
 
 1. **log1p target.** The ensemble is fitted on `log1p(PM2.5)` and inverted for
    reporting. PM2.5 is strongly right-skewed; fitting on the raw concentration
@@ -249,7 +249,7 @@ Only the numbers move. Figure 3 must be regenerated.
 
 **Actual (tuned configuration):** the largest positive residual is **27 May
 2024**. The dust-intrusion interpretation stands; the date needs correcting and
-the magnitude should be read from `results/test_predictions.csv` for whichever
+the magnitude should be read from `results/legacy_chapter/test_predictions.csv` for whichever
 configuration the chapter reports.
 
 Note also that mean bias falls from +12.79 µg/m³ (literal configuration) to
@@ -387,7 +387,7 @@ them costs one sentence and makes Sections 6.2 and 6.3 self-supporting.
 
 | Item | Status |
 |---|---|
-| Table 1 | Regenerated — `results/chapter_tables.md` |
+| Table 1 | Regenerated — `results/legacy_chapter/chapter_tables.md` |
 | Table 2 | Regenerated (PBLH removed, two rolling-mean rows added) |
 | Table 3 | **New numbers required** |
 | Table 3b (baselines) | **New table, answers RQ1** |
@@ -404,10 +404,10 @@ baseline paragraph for RQ1.
 ## Reproducing any of this
 
 ```bash
-python aerosphinx_pipeline.py                  # tuned configuration (default)
-python aerosphinx_pipeline.py --config chapter # literal Section 3 formulation
-python aerosphinx_pipeline.py --select         # validation configuration search
-python aerosphinx_pipeline.py --forecast-days 10
+python legacy/aerosphinx_pipeline.py                  # tuned configuration (default)
+python legacy/aerosphinx_pipeline.py --config chapter # literal Section 3 formulation
+python legacy/aerosphinx_pipeline.py --select         # validation configuration search
+python legacy/aerosphinx_pipeline.py --forecast-days 10
 ```
 
 The literal configuration is kept runnable on purpose. If a reviewer asks what

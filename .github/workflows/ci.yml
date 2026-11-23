@@ -54,6 +54,9 @@ jobs:
       - name: Published numbers match the artefacts and the README
         run: python scripts/check_claims.py --verbose
 
+      - name: Documentation links resolve
+        run: python scripts/check_docs.py
+
       - name: Matrix still reproduces from this commit
         run: python scripts/check_reproducibility.py
 

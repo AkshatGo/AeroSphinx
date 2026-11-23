@@ -1,7 +1,7 @@
 """Research tracks.
 
 Track A and Track B share infrastructure but never share experimental
-assumptions. See ``docs/EXPERIMENT_PROTOCOL.md`` section 2.
+assumptions. See ``docs/reference/EXPERIMENT_PROTOCOL.md`` section 2.
 """
 
 from aerosphinx.tracks.track_a import (

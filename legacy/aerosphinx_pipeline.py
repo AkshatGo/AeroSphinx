@@ -1155,8 +1155,12 @@ def parse_args(root: Path) -> argparse.Namespace:
     parser.add_argument("--cpcb-dir", type=Path, default=root / "data" / "cpcb")
     parser.add_argument("--aod-dir", type=Path, action="append", default=None)
     parser.add_argument("--merra-dir", type=Path, default=root / "data" / "merra2")
-    parser.add_argument("--results-dir", type=Path, default=root / "results")
-    parser.add_argument("--figures-dir", type=Path, default=root / "figures")
+    parser.add_argument(
+        "--results-dir", type=Path, default=root / "results" / "legacy_chapter"
+    )
+    parser.add_argument(
+        "--figures-dir", type=Path, default=root / "docs" / "figures"
+    )
     parser.add_argument("--models-dir", type=Path, default=root / "models")
     parser.add_argument("--config", choices=sorted(CONFIGURATIONS), default=DEFAULT_CONFIG,
                         help="Model configuration to run")
@@ -1179,7 +1183,10 @@ def parse_args(root: Path) -> argparse.Namespace:
 
 
 def main() -> int:
-    root = Path(__file__).resolve().parent
+    # This file lives in legacy/ but reads data/ and writes results/ from the
+    # repository root, so the baseline keeps landing in the same place it did
+    # before the 2026-11-23 restructure.
+    root = Path(__file__).resolve().parents[1]
     args = parse_args(root)
     config = dict(CONFIGURATIONS[args.config])
 

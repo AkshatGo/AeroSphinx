@@ -24,7 +24,7 @@ Severity reflects scientific impact on the research claims, not code aesthetics.
 | D-008 PBLH unavailable; `PBLTOP` fallback is a latent trap | Medium | OPEN | Phase 5 |
 | D-009 `Humidity_Ratio` mis-named and mis-defined | Medium | OPEN | Phase 5 |
 | D-010 MERRA-2 features are midday single-cell values | Medium | **FIXED** (Phase 5) | `src/aerosphinx/ingestion/merra.py` |
-| D-011 Feature importance dominated by `month_sin` | Medium | **PARTIALLY ADDRESSED** (Phase 2) | `docs/PHASE2_REPORT.md` |
+| D-011 Feature importance dominated by `month_sin` | Medium | **PARTIALLY ADDRESSED** (Phase 2) | `docs/reports/PHASE2_REPORT.md` |
 | D-012 Duplicate CPCB source files | Medium | **FIXED** | Phase 0 — `legacy/`, `data/cpcb/` |
 | D-013 Mean-of-file-means aggregation is unsafe | Medium | **FIXED** | Phase 1 — `src/aerosphinx/ingestion/cpcb.py` |
 | D-014 Legacy pipelines absent from the worktree | Medium | **FIXED** | Phase 0 — `legacy/` |
@@ -92,7 +92,7 @@ it cannot silently return) and
 | **Severity** | Critical |
 | **Status** | VERIFIED |
 | **Location** | `aerosphinx_pipeline.py:774` (`recursive_forecast`), `aerosphinx_pipeline.py:833-843` (`forward_forecast`) |
-| **Evidence** | Reproduced directly; see `docs/REPOSITORY_AUDIT.md` §5 |
+| **Evidence** | Reproduced directly; see `docs/reports/REPOSITORY_AUDIT.md` §5 |
 
 **Observed behaviour.** `recursive_forecast` reads the target day's row
 directly from the merged observation frame:
@@ -302,7 +302,7 @@ Delhi-NCR PM2.5.
 |---|---|
 | **Severity** | High |
 | **Status** | VERIFIED |
-| **Location** | `results/metrics.json` → `metrics.WeightedEnsemble_0.6RF_0.4XGB`, `baselines.Persistence_baseline` |
+| **Location** | `results/legacy_chapter/metrics.json` → `metrics.WeightedEnsemble_0.6RF_0.4XGB`, `baselines.Persistence_baseline` |
 | **Evidence** | Paired Wilcoxon signed-rank test, n = 33 |
 
 **Observed behaviour.** The ensemble reports MAE 17.298 against a persistence
@@ -336,7 +336,7 @@ it (delta +0.101, p = 0.52), and XGBoost is significantly worse (delta
 +0.965, p = 0.018). The learned models *do* beat persistence in the
 pre-monsoon and winter seasons, which is the physically expected pattern,
 but the effect is not large enough to move the nine-year aggregate past
-significance. See `docs/PHASE2_REPORT.md`.
+significance. See `docs/reports/PHASE2_REPORT.md`.
 
 ---
 
@@ -346,7 +346,7 @@ significance. See `docs/PHASE2_REPORT.md`.
 |---|---|
 | **Severity** | High |
 | **Status** | VERIFIED |
-| **Location** | `results/metrics.json` → `baselines` |
+| **Location** | `results/legacy_chapter/metrics.json` → `baselines` |
 | **Evidence** | Reproduced; all 81 numeric metrics reproduce exactly |
 
 **Observed behaviour.** On the identical 33 test rows, the ablations give:
@@ -520,7 +520,7 @@ its predictive value is possible.
 |---|---|
 | **Severity** | Medium |
 | **Status** | VERIFIED |
-| **Location** | `results/feature_importance.csv` |
+| **Location** | `results/legacy_chapter/feature_importance.csv` |
 | **Evidence** | `month_sin` 37.93%, `month_cos` 6.29% |
 
 **Observed behaviour.** `month_sin` carries **37.93%** of the ensemble's
@@ -620,10 +620,10 @@ of them are byte-identical to files relocated under `data/`
 (`data/aod`, `data/merra2`, `data/cpcb`). **66** exist nowhere on disk; of
 those, 11 are exact duplicates of another tracked path and 55 are unique,
 recoverable only from commit `859fd08`. The unique set includes every legacy
-Python pipeline and notebook: `scripts/run_research_pipeline.py` (662 lines),
+Python pipeline and notebook: `legacy/scripts/run_research_pipeline.py` (662 lines),
 `ML model/ML_Model.py`, `ML_Model.py`, `pawanai-project/pawanai.py` (1106
 lines), `Data_Reading.ipynb`, plus chapter drafts, `.pbix`/`.docx`/`.pptx`
-artefacts and the original `results/audit_report.md`.
+artefacts and the original `legacy/results/audit_report.md`.
 
 **Impact.** The plan's repository-preservation section requires that legacy
 results and model artefacts be preserved, and states "do not delete, overwrite,
@@ -676,7 +676,7 @@ dictionary so future hash comparisons are not misread as data changes.
 |---|---|
 | **Severity** | Low |
 | **Status** | VERIFIED |
-| **Location** | `results/operational_forward_forecast.csv` |
+| **Location** | `results/legacy_chapter/operational_forward_forecast.csv` |
 | **Evidence** | 96.6 -> 112.3 -> 122.2 -> 129.6 -> 138.5 ug/m3 |
 
 **Observed behaviour.** The forward forecast rises monotonically across all

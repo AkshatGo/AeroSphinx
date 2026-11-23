@@ -264,7 +264,7 @@ export function DataObservatory() {
         <Card title="Legacy preservation">
           <p className="text-xs text-fg-muted">
             The legacy single-script pipeline{" "}
-            <code className="text-fg">aerosphinx_pipeline.py</code> is retained
+            <code className="text-fg">legacy/aerosphinx_pipeline.py</code> is retained
             unchanged as the Phase 0 reproducibility baseline. It is not the
             research path and its forward-fill behaviour must not be reused for
             Track B experiments.

@@ -50,7 +50,7 @@ export function Reports() {
     download(
       `aerosphinx-experiment-${m.configuration ?? "current"}.json`,
       JSON.stringify(
-        { generated: m.generated, experiments: m, source: "results/metrics.json" },
+        { generated: m.generated, experiments: m, source: "results/legacy_chapter/metrics.json" },
         null,
         2,
       ),
@@ -176,7 +176,7 @@ export function Reports() {
 
           <Card
             title="Metrics snapshot"
-            description="Source: results/metrics.json"
+            description="Source: results/legacy_chapter/metrics.json"
             actions={
               m?.generated ? (
                 <StatusBadge status="PASS" label={`generated ${formatUtc(m.generated)}`} />
@@ -216,7 +216,7 @@ export function Reports() {
             ) : (
               <EmptyState
                 title="Metrics unavailable"
-                description={m?.reason ?? "results/metrics.json not found"}
+                description={m?.reason ?? "results/legacy_chapter/metrics.json not found"}
               />
             )}
           </Card>

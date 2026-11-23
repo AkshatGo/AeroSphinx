@@ -8,7 +8,7 @@ baseline".
 
 ## Why it is superseded
 
-The Phase 3 audit (`docs/PHASE3_AUDIT.md`) found two defects in the
+The Phase 3 audit (`docs/reports/PHASE3_AUDIT.md`) found two defects in the
 evaluation that this run exhibits:
 
 1. **D-016** — the headline evaluation set required *every* model,

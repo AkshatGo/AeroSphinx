@@ -1,6 +1,6 @@
 """The written feature-availability contract must match the code.
 
-`docs/FEATURE_AVAILABILITY_CONTRACT.md` is a Phase 2 deliverable. A document
+`docs/reference/FEATURE_AVAILABILITY_CONTRACT.md` is a Phase 2 deliverable. A document
 that drifts from `FEATURE_GROUPS` would be worse than no document, so this test
 parses its per-feature table and checks every feature, group, class and
 operational-eligibility flag against the registry.
@@ -17,7 +17,12 @@ from aerosphinx.features.groups import FEATURE_GROUPS, AvailabilityClass
 
 pytestmark = pytest.mark.unit
 
-DOC = Path(__file__).resolve().parents[2] / "docs" / "FEATURE_AVAILABILITY_CONTRACT.md"
+DOC = (
+    Path(__file__).resolve().parents[2]
+    / "docs"
+    / "reference"
+    / "FEATURE_AVAILABILITY_CONTRACT.md"
+)
 
 ROW = re.compile(
     r"^\|\s*`(?P<feature>[^`]+)`\s*"

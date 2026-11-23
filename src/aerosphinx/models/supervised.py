@@ -1,6 +1,6 @@
 """Supervised models for AeroSphinx Track A.
 
-Model candidates follow the order set in ``docs/EXPERIMENT_PROTOCOL.md``
+Model candidates follow the order set in ``docs/reference/EXPERIMENT_PROTOCOL.md``
 section 6: regularized linear regression, then Random Forest, then
 XGBoost. Additional models are added only when a baseline failure or a
 specific research question justifies them.

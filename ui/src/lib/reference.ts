@@ -2,8 +2,8 @@
  * Reference content transcribed from repository documents.
  *
  * These are *documents*, not measurements: they describe defects and open
- * questions recorded in docs/DEFECT_REGISTER.md and experiment definitions
- * from docs/EXPERIMENT_PROTOCOL.md. Measurements and current dataset values
+ * questions recorded in docs/reference/DEFECT_REGISTER.md and experiment definitions
+ * from docs/reference/EXPERIMENT_PROTOCOL.md. Measurements and current dataset values
  * always come from the API, never from this file.
  */
 
@@ -36,7 +36,7 @@ export const DEFECTS: Defect[] = [
     title: "Row-based PM2.5 lags are not calendar-aware",
     severity: "Critical",
     status: "FIXED",
-    location: "aerosphinx_pipeline.py:427-430",
+    location: "legacy/aerosphinx_pipeline.py:427-430",
     evidence:
       "123 of 2,979 rows have PM25_Lag_1 not from the previous calendar day; worst case 25 days old (2017-10-09 → 2017-11-03).",
     impact:
@@ -50,7 +50,7 @@ export const DEFECTS: Defect[] = [
     title: "Forecast consumes future observed satellite/reanalysis data",
     severity: "Critical",
     status: "CLOSED",
-    location: "aerosphinx_pipeline.py:774",
+    location: "legacy/aerosphinx_pipeline.py:774",
     evidence:
       "recursive_forecast read the target day's row (observed AOD and MERRA-2) directly.",
     impact:
@@ -64,7 +64,7 @@ export const DEFECTS: Defect[] = [
     title: "Forward-fill manufactures environmental observations",
     severity: "High",
     status: "FIXED",
-    location: "aerosphinx_pipeline.py:407-408",
+    location: "legacy/aerosphinx_pipeline.py:407-408",
     evidence:
       "7 of 166 modelling rows carried a forward-filled AOD value; 1 forward-filled MERRA-2.",
     impact: "A stale value presented as a contemporaneous observation.",
@@ -91,7 +91,7 @@ export const DEFECTS: Defect[] = [
     title: "Climatology baseline is mis-specified",
     severity: "High",
     status: "FIXED",
-    location: "aerosphinx_pipeline.py:632-638",
+    location: "legacy/aerosphinx_pipeline.py:632-638",
     evidence:
       "Baseline predicted mean 64.78 against observed 100.63 (bias -35.85, MAE 35.87, R² -2.68).",
     impact: "Flattered every other model by comparison.",
@@ -104,7 +104,7 @@ export const DEFECTS: Defect[] = [
     title: "Improvement over persistence is not statistically significant",
     severity: "High",
     status: "ADDRESSED",
-    location: "results/metrics.json",
+    location: "results/legacy_chapter/metrics.json",
     evidence:
       "Paired Wilcoxon p = 0.1495; paired bootstrap 95% CI [-6.47, +1.39] spans zero.",
     impact: "The headline result is not statistically supported at 0.05.",
@@ -117,7 +117,7 @@ export const DEFECTS: Defect[] = [
     title: "Fusion does not beat its own ground-only ablation",
     severity: "High",
     status: "RESOLVED",
-    location: "results/metrics.json",
+    location: "results/legacy_chapter/metrics.json",
     evidence:
       "Ground_history_only MAE 16.617 vs full ensemble 17.298; full ensemble R² 0.017.",
     impact:
@@ -131,7 +131,7 @@ export const DEFECTS: Defect[] = [
     title: "PBLH unavailable; PBLTOP fallback is a latent trap",
     severity: "Medium",
     status: "RESOLVED",
-    location: "aerosphinx_pipeline.py:124-125",
+    location: "legacy/aerosphinx_pipeline.py:124-125",
     evidence:
       "Neither PBLH nor PBLTOP present in any of the 172 granules.",
     impact:
@@ -145,7 +145,7 @@ export const DEFECTS: Defect[] = [
     title: "Humidity_Ratio is mis-named and mis-defined",
     severity: "Medium",
     status: "RESOLVED",
-    location: "aerosphinx_pipeline.py:425",
+    location: "legacy/aerosphinx_pipeline.py:425",
     evidence:
       "QV2M / (T2M + EPS) is not a humidity ratio; QV2M is specific humidity (kg/kg).",
     impact: "The label invites misinterpretation.",
@@ -170,7 +170,7 @@ export const DEFECTS: Defect[] = [
     title: "Feature importance is dominated by the month term",
     severity: "Medium",
     status: "PARTIALLY_ADDRESSED",
-    location: "results/feature_importance.csv",
+    location: "results/legacy_chapter/feature_importance.csv",
     evidence: "month_sin carries 37.93% of ensemble importance.",
     impact:
       "The model is substantially a seasonal climatology with a persistence anchor.",
@@ -233,7 +233,7 @@ export const DEFECTS: Defect[] = [
     title: "Operational forward forecast extrapolates an upward drift",
     severity: "Low",
     status: "CLOSED",
-    location: "results/operational_forward_forecast.csv",
+    location: "results/legacy_chapter/operational_forward_forecast.csv",
     evidence: "96.6 → 112.3 → 122.2 → 129.6 → 138.5 µg/m³ across five days.",
     impact:
       "A one-step persistence anchor applied unchanged at every horizon of a recursion.",

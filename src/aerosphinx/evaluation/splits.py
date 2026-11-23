@@ -6,7 +6,7 @@ distinguish a model that generalises from one that happened to suit one
 season, and it cannot support a claim about year-to-year stability.
 
 This module provides the rolling-origin protocol described in
-``docs/EXPERIMENT_PROTOCOL.md`` section 5.1: an expanding training window
+``docs/reference/EXPERIMENT_PROTOCOL.md`` section 5.1: an expanding training window
 with a validation block and a test block, advancing by a fixed step.
 
 Every split is **strictly chronological**. The training block of a fold

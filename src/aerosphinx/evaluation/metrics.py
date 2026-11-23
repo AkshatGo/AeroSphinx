@@ -9,7 +9,7 @@ Two families of metric live here, and the distinction matters:
 The AQI category computed here is **not** the official overall AQI, which is
 a multi-pollutant index. The columns are named accordingly and the
 distinction is enforced by the docstrings, per
-``docs/EXPERIMENT_PROTOCOL.md`` section 5.2.
+``docs/reference/EXPERIMENT_PROTOCOL.md`` section 5.2.
 """
 
 from __future__ import annotations

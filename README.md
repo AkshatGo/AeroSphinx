@@ -1,5 +1,9 @@
 # AeroSphinx — availability-aware multisource PM2.5 research platform
 
+[![CI](https://github.com/AkshatGo/AeroSphinx/actions/workflows/ci.yml/badge.svg)](https://github.com/AkshatGo/AeroSphinx/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Live](https://img.shields.io/badge/live-aerosphinx.onrender.com-2ea44f)](https://aerosphinx.onrender.com)
+
 > **A Multi-Source Machine Learning Framework for Satellite-Fused PM2.5 Estimation
 > and Five-Day Atmospheric Forecasting over Urban India**
 > Raju Bhakta and Indraneel Chatterjee
@@ -15,16 +19,17 @@ over a shared, evidence-first infrastructure:
 | **B** | Does satellite and meteorological information actually add value? | CPCB + INSAT-3D AOD + MERRA-2 |
 
 The current scientific position, established by the Phase 0 audit, is
-documented in `docs/RESEARCH_FINDINGS.md`. In short: the shipped baseline
+documented in `docs/reports/RESEARCH_FINDINGS.md`. In short: the shipped baseline
 reproduces exactly (81/81 metrics) but **does not** demonstrate that fusion
 beats ground-only prediction, and its five-day "forecast" is a retrospective
 estimation rather than an operational forecast. Those are the open questions
 the two tracks exist to answer.
 
-> **Start here:** `AGENTS.md` (engineering contract) · `docs/REPOSITORY_AUDIT.md`
-> (audit) · `docs/DEFECT_REGISTER.md` (defects) · `docs/PHASE7_REPORT.md`
-> (matrix and its negative result) · `docs/FEATURE_AVAILABILITY_CONTRACT.md`
-> (per-feature availability) · `docs/EXPERIMENT_PROTOCOL.md` (how experiments
+> **Start here:** [`docs/README.md`](docs/README.md) (index of every document) ·
+> `AGENTS.md` (engineering contract) · `docs/reports/REPOSITORY_AUDIT.md`
+> (audit) · `docs/reference/DEFECT_REGISTER.md` (defects) · `docs/reports/PHASE7_REPORT.md`
+> (matrix and its negative result) · `docs/reference/FEATURE_AVAILABILITY_CONTRACT.md`
+> (per-feature availability) · `docs/reference/EXPERIMENT_PROTOCOL.md` (how experiments
 > must be run).
 
 ---
@@ -69,7 +74,7 @@ That matrix figure is the published Track A comparison. `scripts/run-track-a`
 is a protocol-discovery tool with a narrower eligible set (2,510 predictions,
 because it requires a complete seven-day warm-up) and its ridge delta has the
 opposite sign (+0.34, p = 0.13); it is a diagnostic, not the result. The
-pre-audit Phase 2 numbers are marked superseded in `docs/PHASE2_REPORT.md`.
+pre-audit Phase 2 numbers are marked superseded in `docs/reports/PHASE2_REPORT.md`.
 
 Phase 6 publishes the fused Track B dataset with an explicit availability
 mask: all 2,979 ground rows are preserved, missing environmental values are
@@ -89,9 +94,9 @@ distinguishable from zero.** The result is negative and underpowered, and is
 now reported as both: not "fusion costs 4.70 MAE" but "nothing here separates
 fusion from the ground-only model on 49 days".
 
-Full analysis: `docs/PHASE2_REPORT.md` (Track A), `docs/PHASE6_REPORT.md`
-(fusion and availability), `docs/PHASE7_REPORT.md` (matrix, ablations,
-sufficiency), `docs/FEATURE_AVAILABILITY_CONTRACT.md` (per-feature contract).
+Full analysis: `docs/reports/PHASE2_REPORT.md` (Track A), `docs/reports/PHASE6_REPORT.md`
+(fusion and availability), `docs/reports/PHASE7_REPORT.md` (matrix, ablations,
+sufficiency), `docs/reference/FEATURE_AVAILABILITY_CONTRACT.md` (per-feature contract).
 
 ### Web application
 
@@ -106,158 +111,59 @@ cd ui && npm ci && npm run dev  # frontend dev server on :5173
 make check-deploy               # verify the deployment matches local HEAD
 ```
 
-### Legacy chapter pipeline
-
-The single-script pipeline that produced the book chapter's tables, figures
-and metrics is retained unchanged as the reproducibility baseline:
-
-```bash
-python -m pip install -r requirements.txt
-python aerosphinx_pipeline.py
-```
-
-Optional arguments:
-
-```bash
-python aerosphinx_pipeline.py --config chapter   # literal Section 3 formulation
-python aerosphinx_pipeline.py --select           # validation configuration search
-python aerosphinx_pipeline.py --forecast-days 10 # longer operational forecast
-python aerosphinx_pipeline.py \
-    --cpcb-dir data/cpcb --aod-dir data/aod --merra-dir data/merra2 \
-    --test-start 2024-05-17 --test-end 2024-06-18 --min-hours 18
-```
-
-## Two reproducible configurations (legacy chapter pipeline)
-
-These belong to the legacy single-script pipeline, not to the Tracks. Its test
-window is **33 days** (2024-05-17 to 2024-06-18) and its training window 130
-days; a 33-day window cannot characterise seasonal behaviour, which is
-assumption F3 in `docs/SCIENTIFIC_ASSUMPTIONS.md`. The numbers are here because
-the chapter reports them, and they are labelled so they are not mistaken for
-the Track A result above.
-
-| | `tuned` (default) | `chapter` |
-|---|---|---|
-| Target | `log1p(PM2.5)`, inverted for reporting | raw concentration |
-| Features | base set + `PM25_Roll3`, `PM25_Roll7` | base set |
-| Output | `0.6 · y_model + 0.4 · y_(t-1)` | `y_model` |
-| Test days (n) | 33 | 33 |
-| Test MAE / RMSE / R² | **17.24 / 22.81 / +0.025** | 23.29 / 30.28 / −0.718 |
-
-The `chapter` configuration is the literal Section 3 and Section 5 formulation.
-The `tuned` configuration adds three documented choices, each selected on a
-validation window (10 April to 16 May 2024, **37 days**) that closes before the
-test window opens, so the test set influenced no modelling decision. Note that
-37 autocorrelated days choosing among 36 candidate configurations is a weak
-selection signal: the spread across the whole validation grid is ~0.35 MAE
-(21.92 to 22.27) while the test-window difference between configurations is
-6 MAE, so the choice is close to arbitrary and should not be read as tuning.
-`--select` regenerates the search and writes the full table to
-`results/configuration_selection.csv`.
-
-Model hyperparameters are fixed as published in Section 5 in both cases and are
-never searched.
-
 ## Repository layout
 
 ```text
-AGENTS.md                  Research-engineering contract (read this first)
-config/                    Every scientific rule, in a file rather than in code
-  common.yaml              Paths, station, calendar conventions
-  data_quality.yaml        Quality rules applied during ingestion
-  track_a.yaml             Track A features, evaluation and baselines
-  fusion.yaml              Availability policy for the fused Track B dataset
-src/aerosphinx/            The research package
-  ingestion/cpcb.py        Validated CPCB daily series with a full audit trail
-  features/lags.py         Calendar-aware lags and rolling statistics
-  features/availability.py Availability-masked multisource fusion and gate
-  evaluation/              Splits, metrics, paired uncertainty quantification
-  models/                  Baselines and supervised regressors
-  features/seasonal.py     Single season and season-year definition
-  tracks/                  Track A runner, regime diagnostics, M0-M8 matrix
-  evaluation/sufficiency.py Per-season x source SUFFICIENT/INSUFFICIENT status
-  quality/                 Coverage analysis, alignment and run provenance
-data/cpcb/                 CPCB hourly PM2.5 exports, Faridabad, 2016-2024
-data/aod/                  INSAT-3D Imager L2G AOD V02R00 granules (HDF5)
-data/merra2/               MERRA-2 tavg1_2d_slv_Nx granules (NetCDF)
-data/processed/            Derived datasets (Track A series + fused Track B frame)
-data/manifests/            Run manifests with Git SHA, env and input hashes
-results/runs/              Experiment runs: metrics, predictions, comparisons
-scripts/                   Audit, dataset-build and experiment entry points
-tests/                     Unit and integration tests
-docs/                      Audit, defect register, data dictionary, protocol
-legacy/                    Preserved pre-Phase-0 experimental record
-results/ figures/ models/  Chapter outputs (legacy pipeline)
-aerosphinx_pipeline.py     Legacy single-script chapter pipeline (unchanged)
-```
+README.md                       What this is, how to run it, what it concludes
+LICENSE                         MIT
+CITATION.cff                    How to cite the work
+CONTRIBUTING.md                 How to change the code without breaking the science
+CHANGELOG.md                    Dated record of structural and scientific changes
+AGENTS.md                       Research-engineering contract (read before editing)
+Makefile                        Every reproducible entry point, in one place
 
-## What the script does
+config/                         Scientific rules as data, not code
+  common.yaml                   Paths, station, calendar conventions
+  data_quality.yaml             Quality rules applied during ingestion
+  track_a.yaml                  Track A features, evaluation and baselines
+  fusion.yaml                   Availability policy for the fused Track B dataset
 
-The four layers of Section 4 map one-to-one onto functions in the script.
+src/aerosphinx/                 The research package (installable, typed)
+  ingestion/                    Validated CPCB series with an audit trail
+  features/                     Calendar-aware lags, availability masks, seasons
+  evaluation/                   Splits, metrics, paired uncertainty
+  models/                       Baselines and supervised regressors
+  tracks/                       Track A runner, regime diagnostics, M0-M8 matrix
+  quality/                      Coverage, alignment, run provenance
 
-| Layer | Section 4 name | Functions |
-|---|---|---|
-| 1 | Data Acquisition | `load_cpcb_daily`, `load_aod_daily`, `load_merra_daily` |
-| 2 | Harmonisation | `harmonise`, `engineer_features` |
-| 3 | Modelling | `chronological_split`, `fit_ensemble`, `ensemble_predict`, `evaluate` |
-| 4 | Forecasting | `recursive_forecast` |
+api/server.py                   Read-only artefact API (stdlib only) + SPA host
+ui/                             React dashboard over that API
+scripts/                        Audits, dataset builds, experiments, gates
+tests/                          266 unit and integration tests
 
-Methodological choices, all matching the chapter text:
+data/                           Inputs (read-only) and derived datasets
+  cpcb/ aod/ merra2/            Raw provider granules, unchanged
+  processed/                    Track A series and the fused Track B frame
+  manifests/                    Run manifests: Git SHA, environment, input hashes
 
-* PM2.5 values outside `[0, 500]` µg/m³ are treated as missing; a daily mean is
-  kept only when at least 18 valid hourly samples are present.
-* INSAT-3D AOD is collocated to the station by a ±0.25° window; fill values
-  (−999) and impossible retrievals are removed before daily averaging.
-* MERRA-2 fields are averaged over the Faridabad bounding box of each granule.
-* Remaining gaps are forward-filled within a three-day window; anything still
-  missing is excluded rather than imputed.
-* Calendar variables use cyclic encodings, `day_sin = sin(2πd/7)` over the week
-  and `month_sin = sin(2πm/12)` over the year, with matching cosine terms.
-* Lags use only prior days, and the split is chronological, so no future
-  information reaches the model.
-* The ensemble is `0.6 · RF + 0.4 · XGB`, clipped to `[0, 500]` µg/m³.
-* Hyperparameters are fixed as stated in Section 5 and are not searched.
-* The five-day forecast is genuinely recursive: from day two onward the lag and
-  rolling inputs are previous predictions, never observations.
+results/                        Every persisted result
+  CANONICAL.json                Registry of published numbers
+  experiment_matrix/            M0-M8 matrix — the canonical evaluation
+  alignment/  sufficiency/      Coverage, missingness, per-season sufficiency
+  baseline/                     Phase 0 data audit
+  runs/                         Timestamped exploratory runs, one directory each
+  legacy_chapter/               Chapter-pipeline outputs (33-day window)
 
-## Forecasting, in two modes
+docs/                           Documentation
+  README.md                     Index of everything in this directory
+  reference/                    Living specifications and registers
+  reports/                      Dated phase reports and audits
+  figures/                      Chapter figures (generated by the legacy pipeline)
+  screenshots/                  Dashboard captures
 
-`recursive_forecast()` — **evaluated mode**. The forecast is issued inside the
-held-out window, so all five forecast days are days the model has never seen and
-observations exist for scoring. Meteorological inputs are taken as given, which
-matches the chapter's assumption that forward meteorology arrives from an
-external forecast product. This is what Table 4 and Figure 7 report.
-
-`forward_forecast()` — **operational mode**. The forecast runs past the last
-observation, so no observed PM2.5 exists for any forecast day and every lag and
-rolling input is a previous prediction. Meteorological and satellite inputs are
-persisted from the most recent observed day, as a placeholder for the NWP fields
-(NCMRWF, ECMWF-IFS, GFS) that Sections 8 and 9 identify as the requirement for
-genuine prospective forecasting. Each row records `meteorology_source` so the
-output is never mistaken for a real weather-forecast-driven product. Written to
-`results/operational_forward_forecast.csv`; horizon set by `--forecast-days`.
-
-Running both is deliberate: the difference between them isolates the cost of
-recursive lag substitution from the cost of imperfect meteorology.
-
-## Generated outputs
-
-| File | Contents |
-|---|---|
-| `results/chapter_tables.md` | Tables 1, 2, 3, 3b and 4, ready to paste |
-| `results/metrics.json` | Full machine-readable audit of the run |
-| `results/test_predictions.csv` | Per-day observed, RF, XGB, ensemble, residual |
-| `results/five_day_recursive_forecast.csv` | Evaluated forecast by horizon day |
-| `results/operational_forward_forecast.csv` | Forward forecast beyond last observation |
-| `results/configuration_selection.csv` | Validation search (`--select` only) |
-| `results/feature_importance.csv` | Ensemble, RF and XGB importances |
-| `results/daily_multisource_dataset.csv` | Full harmonised daily dataset |
-| `results/modelling_dataset_complete_cases.csv` | Rows actually used for modelling |
-| `figures/fig3_monthly_pm25_climatology.png` | Figure 3 |
-| `figures/fig4_observed_vs_predicted.png` | Figure 4 |
-| `figures/fig5_residuals.png` | Figure 5 |
-| `figures/fig6_feature_importance.png` | Figure 6 |
-| `figures/fig7_five_day_forecast.png` | Figure 7 |
+legacy/                         Frozen pre-Phase-0 record, including the
+                                single-script chapter pipeline
+models/                         Trained joblib artefacts from the legacy pipeline
 
 ## Data provenance and known constraints
 
@@ -289,7 +195,20 @@ rather than worked around:
 
 `random_state=42` throughout, fixed hyperparameters, no automated search, and a
 chronological split, so repeated runs on the same files give identical numbers.
-The exact configuration of each run is written to `results/metrics.json`.
+The exact configuration of each run is written to `results/legacy_chapter/metrics.json`.
+
+## Citing
+
+`CITATION.cff` carries machine-readable citation metadata; GitHub renders it as
+a "Cite this repository" button. If you use the code rather than the paper, cite
+the repository and the commit you ran.
+
+## Licence
+
+MIT — see `LICENSE`. Provider data under `data/` retains its own terms: CPCB
+observations, ISRO/SAC INSAT-3D products and NASA GMAO MERRA-2 fields are
+redistributed here only to the extent their terms allow. Check the provider's
+terms before reusing them.
 
 ## Acknowledgements
 

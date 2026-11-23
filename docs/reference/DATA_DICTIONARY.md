@@ -377,7 +377,7 @@ Output: `data/processed/fused_dataset.csv` — 42 columns.
 | `aod` | 139 | 4.7% | 2024-01-07 to 2024-06-18 |
 | **All three** | **139** | **4.7%** | 2024 only |
 
-The 33-check alignment gate is documented in `docs/PHASE6_REPORT.md`.
+The 33-check alignment gate is documented in `docs/reports/PHASE6_REPORT.md`.
 
 ---
 

@@ -9,7 +9,7 @@ experimental assumptions:
   available at forecast issue time.
 
 See ``AGENTS.md`` for the engineering contract and
-``docs/EXPERIMENT_PROTOCOL.md`` for the experimental protocol.
+``docs/reference/EXPERIMENT_PROTOCOL.md`` for the experimental protocol.
 """
 
 __version__ = "0.1.0"

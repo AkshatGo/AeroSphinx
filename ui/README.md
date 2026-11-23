@@ -54,7 +54,7 @@ numbers.
 | `GET /api/health` | process liveness |
 | `GET /api/status` | git + dataset + coverage summary |
 | `GET /api/dataset` | `data/processed/fused_dataset.csv` |
-| `GET /api/experiments` | `results/metrics.json` |
+| `GET /api/experiments` | `results/legacy_chapter/metrics.json` |
 | `GET /api/coverage` | `data/processed/fused_dataset.csv` |
 | `GET /api/series?start&end` | `data/processed/fused_dataset.csv` |
 | `GET /api/manifests` | `results/**/manifest.json` |

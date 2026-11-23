@@ -41,7 +41,7 @@ predict future PM2.5.
 date; calendar features; **and**, where explicitly marked, station-local
 meteorology from the CPCB export itself (`AT`, `RH`, `WS`, `WD`, `RF`, `SR`,
 `BP`, `VWS`) — subject to the provenance check in H4 of
-`docs/SCIENTIFIC_ASSUMPTIONS.md`.
+`docs/reference/SCIENTIFIC_ASSUMPTIONS.md`.
 
 **Forbidden.** Any AOD, MERRA-2 or other externally sourced value that is not
 available at forecast issue time.

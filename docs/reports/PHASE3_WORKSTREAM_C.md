@@ -147,7 +147,7 @@ not evidence of predictive value.
 > since been screened and excluded from the group (D-020). With it removed
 > the corrected run gives **0 significantly worse** as well. The null
 > conclusion — no demonstrated benefit — is unchanged, but the group is now
-> *neutral* rather than *harmful*. See `docs/PHASE5_REPORT.md` §6 and
+> *neutral* rather than *harmful*. See `docs/reports/PHASE5_REPORT.md` §6 and
 > `results/runs/C-regime-20261113T052110Z/`.
 | **All** | **50** | 32 | 15 | 2 | **0** |
 

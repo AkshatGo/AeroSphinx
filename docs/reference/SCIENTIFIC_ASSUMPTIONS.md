@@ -75,7 +75,7 @@ measurement character, and no existing test detects it.
 | E3 | Sine/cosine encoding preserves the circular topology of weekly and annual cycles | **VERIFIED** | Standard and correctly implemented for day-of-week and month. |
 | E4 | Month is a sufficient seasonal encoding | **INFERRED** | `month_sin` carries 37.9% of importance, so the model leans on it heavily. A day-of-year cyclic encoding would represent the seasonal cycle more smoothly, and a monsoon-break discontinuity is not representable by a smooth annual cycle. Falsified by an alternative-encoding comparison, **not yet performed**. |
 | E5 | Calendar features are known at forecast issue time and so are legitimate forecast inputs | **VERIFIED** | Deterministic functions of the target date. |
-| E6 | Missing environmental observations are represented by an explicit mask and are never filled or imputed | **VERIFIED (Phase 6)** | The fused frame preserves 2,979 ground rows with 0 manufactured environmental values; the 33-check alignment gate verifies same-day provenance for every column. Falsified by any unobserved row carrying a value. See `docs/PHASE6_REPORT.md`. |
+| E6 | Missing environmental observations are represented by an explicit mask and are never filled or imputed | **VERIFIED (Phase 6)** | The fused frame preserves 2,979 ground rows with 0 manufactured environmental values; the 33-check alignment gate verifies same-day provenance for every column. Falsified by any unobserved row carrying a value. See `docs/reports/PHASE6_REPORT.md`. |
 
 ---
 

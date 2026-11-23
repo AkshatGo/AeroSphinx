@@ -1,6 +1,6 @@
 """Re-run the matrix and prove the committed numbers still reproduce.
 
-``docs/SCIENTIFIC_ASSUMPTIONS.md`` G1 claims that repeated runs give identical
+``docs/reference/SCIENTIFIC_ASSUMPTIONS.md`` G1 claims that repeated runs give identical
 numbers. Nothing checked that. This script regenerates the M0-M8 matrix into
 a temporary directory and compares it field by field with the committed
 artefacts, so a code change that silently moves a published metric fails CI

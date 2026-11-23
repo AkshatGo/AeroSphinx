@@ -5,7 +5,7 @@ Inspects the three raw sources (CPCB CSV, INSAT-3D HDF5, MERRA-2 NetCDF) and
 writes a machine-readable evidence file describing what is actually present.
 
 This script is READ-ONLY with respect to raw data and to the pipeline. It
-never writes into data/, results/, figures/ or models/ except for its own
+never writes into data/, results/, docs/figures/ or models/ except its own
 audit output under results/baseline/.
 
 Usage:
@@ -24,7 +24,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-# Constants mirrored from aerosphinx_pipeline.py so the audit measures the
+# Constants mirrored from legacy/aerosphinx_pipeline.py so the audit measures the
 # same behaviour the pipeline actually exhibits.
 TARGET = "PM25"
 PM25_VALID_MIN = 0.0
@@ -397,12 +397,13 @@ def audit_merra(root: Path) -> dict:
 def audit_alignment(root: Path) -> dict:
     """Check how much of the fused modelling frame rests on real observations.
 
-    Mirrors aerosphinx_pipeline.harmonise (including its 3-day forward fill) so
-    the audit reports the behaviour of the shipped pipeline.
+    Mirrors the chapter pipeline's ``harmonise`` (including its 3-day forward
+    fill) so the audit reports the behaviour of the shipped baseline, which
+    lives in ``legacy/``.
     """
     import sys
 
-    sys.path.insert(0, str(root))
+    sys.path.insert(0, str(root / "legacy"))
     import aerosphinx_pipeline as ap
 
     cpcb = ap.load_cpcb_daily(root / "data" / "cpcb")

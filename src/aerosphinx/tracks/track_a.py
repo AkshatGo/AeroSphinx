@@ -16,7 +16,7 @@ A2      Historical PM2.5 + temporal +        Does temporal ML beat
 
 Every model is scored on **identical test rows** within a fold, and every
 comparison against the baseline is reported with a paired test and a
-bootstrap interval, per ``docs/EXPERIMENT_PROTOCOL.md`` section 5.
+bootstrap interval, per ``docs/reference/EXPERIMENT_PROTOCOL.md`` section 5.
 """
 
 from __future__ import annotations
@@ -42,7 +42,7 @@ __all__ = ["TrackAResult", "run_track_a", "DEFAULT_FEATURES"]
 
 # The A2 feature set: calendar-aware PM2.5 history plus cyclic calendar
 # encodings. Station-local meteorology is deliberately excluded until its
-# provenance is confirmed (see docs/SCIENTIFIC_ASSUMPTIONS.md H4).
+# provenance is confirmed (see docs/reference/SCIENTIFIC_ASSUMPTIONS.md H4).
 DEFAULT_FEATURES = [
     "PM25_Lag_1",
     "PM25_Lag_2",

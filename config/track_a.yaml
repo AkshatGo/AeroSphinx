@@ -23,7 +23,7 @@ features:
   # Station-local meteorology from the CPCB export itself. These are
   # same-station, same-timestamp observations available across the whole
   # 2016-2024 record. Their provenance is unconfirmed (see
-  # docs/SCIENTIFIC_ASSUMPTIONS.md H4), so they are disabled by default
+  # docs/reference/SCIENTIFIC_ASSUMPTIONS.md H4), so they are disabled by default
   # and enabled only after the provenance check passes.
   use_station_meteorology: false
   station_meteorology_columns:

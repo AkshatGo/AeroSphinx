@@ -6,7 +6,7 @@ that the ensemble beats persistence - was **not statistically significant**
 [-6.47, +1.39], spanning zero). Point estimates alone had concealed that.
 
 This module makes the required statistics the default rather than an
-afterthought. Per ``docs/EXPERIMENT_PROTOCOL.md`` section 5.3, a claim of
+afterthought. Per ``docs/reference/EXPERIMENT_PROTOCOL.md`` section 5.3, a claim of
 improvement requires the interval to **exclude zero**.
 
 All comparisons are **paired**: the same test observations are scored by

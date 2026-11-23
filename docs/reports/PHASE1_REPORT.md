@@ -242,7 +242,7 @@ Phase 2 is Track A feature engineering and baselines. Recommended order:
    before fitting RF and XGBoost — otherwise a spurious "poor generalisation"
    finding is likely.
 4. **Report every comparison with uncertainty** (paired tests + bootstrap
-   CI), per `docs/EXPERIMENT_PROTOCOL.md` §5.3.
+   CI), per `docs/reference/EXPERIMENT_PROTOCOL.md` §5.3.
 5. **Report by season and by year**, not just in aggregate, so the
    heterogeneity in the record is visible rather than averaged away.
 

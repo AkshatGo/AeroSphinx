@@ -31,8 +31,8 @@ of its scientific substrate is already present:
 | Availability contract (operational vs retrospective) | **YES (in code)** | `features/groups.py` |
 | Fusion without forward-fill | **YES** | `features/availability.py`; `fused_dataset.csv` |
 | Rolling-origin chronological evaluation | **YES** | `evaluation/splits.py` |
-| Persistence / seasonal-naive baselines | **YES** | `models/baselines.py` |
-| Ridge / RandomForest / XGBoost | **YES** | `models/supervised.py` (`MODEL_REGISTRY`) |
+| Persistence / seasonal-naive baselines | **YES** | `src/aerosphinx/models/baselines.py` |
+| Ridge / RandomForest / XGBoost | **YES** | `src/aerosphinx/models/supervised.py` (`MODEL_REGISTRY`) |
 | Global / seasonal / interaction / routing architectures | **YES** | `tracks/regime.py` |
 | Source ablations (ground, +AOD, +MERRA, +all) | **YES (Phase 7 run)** | `results/F-phase7-20261113T102206Z/` |
 | Eligibility-gated forecast (no hardcoded value) | **YES** | `api/server.py:forecast_endpoint` |
@@ -154,7 +154,7 @@ single-cell values, not daily means** (D-010). `PBLH`/`PBLTOP` absent (D-008).
 ineligible group; `partition_by_availability` splits groups accordingly.
 
 **Gap vs spec:** the contract exists as **code**, but the specification's
-`docs/FEATURE_AVAILABILITY_CONTRACT.md` deliverable does not. The per-feature
+`docs/reference/FEATURE_AVAILABILITY_CONTRACT.md` deliverable does not. The per-feature
 table (observation / ingestion / publication / availability timestamps,
 quality flags, exclusion reason) is not yet written out.
 
@@ -191,9 +191,9 @@ not to use the target value (`tracks/regime.py` docstring + tests).
 
 ## 8. Existing models and architectures (VERIFIED)
 
-`models/baselines.py`: perseverance (`persistence_forecast`),
+`src/aerosphinx/models/baselines.py`: perseverance (`persistence_forecast`),
 `SeasonalNaiveBaseline` (day-of-year climatology), `ClimatologyBuilder`.
-`models/supervised.py`: `MODEL_REGISTRY` with ridge, random_forest, xgboost.
+`src/aerosphinx/models/supervised.py`: `MODEL_REGISTRY` with ridge, random_forest, xgboost.
 All report training-only preprocessing, fixed seed (42).
 
 `tracks/regime.py` implements architecture `kind ∈ {global, seasonal,
@@ -320,7 +320,7 @@ Consistent with the spec's own ordering and the repo's phase discipline:
 1. **Phase 1** — Emit the named daily-alignment artefacts
    (`daily_source_coverage`, `daily_source_missingness`,
    `daily_alignment_report`) from the existing fused frame. No new data source.
-2. **Phase 2** — Write `docs/FEATURE_AVAILABILITY_CONTRACT.md` from
+2. **Phase 2** — Write `docs/reference/FEATURE_AVAILABILITY_CONTRACT.md` from
    `features/groups.py` and the fused columns; add a machine-readable
    per-feature availability table.
 3. **Phase 4** — Add one authoritative `features/seasonal.py` with

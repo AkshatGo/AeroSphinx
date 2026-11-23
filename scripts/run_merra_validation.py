@@ -95,7 +95,7 @@ def main() -> int:
         )
         print(
             f"      SLP vs station BP : corr {cross.SLP_Pa.corr(cross.station_BP_hPa):+.4f} "
-            f"<- NEGATIVE is impossible; see docs/PHASE5_REPORT.md section 6"
+            f"<- NEGATIVE is impossible; see docs/reports/PHASE5_REPORT.md section 6"
         )
 
     run_id = (

@@ -12,7 +12,7 @@ BASE_PYTHON ?= python3
 .DEFAULT_GOAL := help
 .PHONY: help venv install install-dev test test-unit test-integration audit \
         build-track-a run-track-a run-phase6 run-matrix run-sufficiency \
-        run-alignment lint fmt check-claims check-deploy verify clean
+        run-alignment lint fmt check-claims check-docs check-deploy verify clean
 
 venv: .venv/bin/python ## Create the virtual environment if it is absent
 
@@ -75,11 +75,14 @@ fmt: ## Apply black and isort; legacy/ and the legacy pipeline are untouched
 check-claims: ## Verify README numbers against persisted artefacts
 	$(PYTHON) scripts/check_claims.py --verbose
 
+check-docs: ## Verify every internal documentation link and artefact path
+	$(PYTHON) scripts/check_docs.py
+
 check-deploy: ## Verify the deployment serves the local HEAD commit
 	$(PYTHON) scripts/check_deploy.py
 
-verify: test lint check-claims ## Everything CI runs, locally
-	@echo "verify: tests, formatting, lint and published numbers all pass"
+verify: test lint check-claims check-docs ## Everything CI runs, locally
+	@echo "verify: tests, formatting, lint, published numbers and doc links all pass"
 
 clean: ## Remove build and cache artefacts
 	rm -rf build dist *.egg-info .pytest_cache

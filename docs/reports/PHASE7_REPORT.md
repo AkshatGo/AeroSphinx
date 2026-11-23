@@ -48,7 +48,7 @@ advantage over persistence is small and season-dependent.
 | Seasonal contract | `src/aerosphinx/features/seasonal.py` | Single `assign_season`, `get_season_year` (season-start year), validators |
 | API | `api/server.py` | Read-only routes for matrix, ablations, sufficiency, alignment |
 | UI | `ui/src/modules/research-lab`, `data-observatory` | Panels bound to those routes, Track A/B separated |
-| Contract document | `docs/FEATURE_AVAILABILITY_CONTRACT.md` | Per-feature availability table, pinned by a test |
+| Contract document | `docs/reference/FEATURE_AVAILABILITY_CONTRACT.md` | Per-feature availability table, pinned by a test |
 
 The matrix reuses `evaluation/splits.py` and `models/`; it does not implement a
 second evaluation stack. Track B remains retrospective by construction: AOD

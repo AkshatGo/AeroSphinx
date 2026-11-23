@@ -2,7 +2,7 @@
 
 This module is the Phase 1 replacement for the CPCB loading logic that
 previously lived inside ``aerosphinx_pipeline.load_cpcb_daily``. It corrects
-two defects recorded in ``docs/DEFECT_REGISTER.md``:
+two defects recorded in ``docs/reference/DEFECT_REGISTER.md``:
 
 * **D-013** - the legacy loader averaged *file-level daily means*, which is
   only correct when every file contributes the same number of hours to a

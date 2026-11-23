@@ -29,7 +29,7 @@ export function ModelIntelligence() {
     return (
       <EmptyState
         title="Model registry unavailable"
-        description={m?.reason ?? "results/metrics.json not found"}
+        description={m?.reason ?? "results/legacy_chapter/metrics.json not found"}
       />
     );
 

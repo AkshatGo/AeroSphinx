@@ -10,12 +10,12 @@ dates per track, and the multisource extension is delivered end to end
 Phase 8 (operational covariate availability) remains blocked by D-002: AOD and
 MERRA-2 are same-day observations, so no Track B result is an operational
 forecast.**
-See `docs/PHASE7_REPORT.md` for the matrix and its negative result,
-`docs/FEATURE_AVAILABILITY_CONTRACT.md` for the per-feature contract,
-`docs/PHASE6_REPORT.md` for the fusion and availability gate,
-`docs/PHASE5_REPORT.md` for the MERRA-2 validation and the corrupt-column
-finding, `docs/PHASE4_REPORT.md` for the INSAT-3D validation, and
-`docs/PHASE3_WORKSTREAM_{A,B,C,D}.md` for the Phase 3 workstreams.
+See `docs/reports/PHASE7_REPORT.md` for the matrix and its negative result,
+`docs/reference/FEATURE_AVAILABILITY_CONTRACT.md` for the per-feature contract,
+`docs/reports/PHASE6_REPORT.md` for the fusion and availability gate,
+`docs/reports/PHASE5_REPORT.md` for the MERRA-2 validation and the corrupt-column
+finding, `docs/reports/PHASE4_REPORT.md` for the INSAT-3D validation, and
+`docs/reports/PHASE3_WORKSTREAM_{A,B,C,D}.md` for the Phase 3 workstreams.
 
 ---
 
@@ -123,7 +123,7 @@ All features must obey an explicit availability contract.
 - **Phase 6** — Multisource fusion and availability. *(complete)*
 - **Phase 7** — Track B ablations and robustness, plus the M0–M8 matrix,
   seasonal sufficiency, alignment artefacts and their API/UI surfaces.
-  *(complete — see `docs/PHASE7_REPORT.md`)*
+  *(complete — see `docs/reports/PHASE7_REPORT.md`)*
 - **Phase 8** — Operational covariate availability and forecasting.
   *(blocked: D-002; Track B stays retrospective)*
 - **Phase 9** — CI, reproducibility and research reporting. *(complete — CI
@@ -258,13 +258,13 @@ README agree in the same commit.
 | Fusion policy | `config/fusion.yaml` |
 | Runner and gate | `scripts/run_phase6_fusion.py` (`make run-phase6`) |
 | Fused dataset | `data/processed/fused_dataset.csv` |
-| Run artefacts | `results/runs/F-fusion-*/` |
+| Run artefacts | `results/runs/F-fusion-*/` (exploratory; canonical numbers come from `results/experiment_matrix/`) |
 | Tests | 18 unit + 7 integration in `tests/unit/test_fusion_availability.py` and `tests/integration/test_phase6_fusion.py` |
 
 **Phase 6 headline: the fused frame preserves 2,979 ground rows, carries
 zero filled environmental values, and flags a source only where a same-day
 record exists. All three sources overlap on 139 rows (4.7%). See
-`docs/PHASE6_REPORT.md`.**
+`docs/reports/PHASE6_REPORT.md`.**
 
 ### Phase 2 output (complete)
 
@@ -284,7 +284,7 @@ record exists. All three sources overlap on 139 rows (4.7%). See
 **Phase 2 headline: no learned model significantly beats persistence at
 one-day horizon over the full nine-year record.** Random Forest matches it
 (delta -0.013, p = 0.86). The learned models *do* beat persistence in
-pre-monsoon and winter. See `docs/PHASE2_REPORT.md`.
+pre-monsoon and winter. See `docs/reports/PHASE2_REPORT.md`.
 
 ### Phase 1 output (complete)
 
@@ -342,13 +342,21 @@ tests.
 
 ## 9. Required documentation
 
-- `docs/REPOSITORY_AUDIT.md`
-- `docs/DEFECT_REGISTER.md`
-- `docs/DATA_DICTIONARY.md`
-- `docs/SCIENTIFIC_ASSUMPTIONS.md`
-- `docs/EXPERIMENT_PROTOCOL.md`
-- `docs/LIMITATIONS.md`
-- `docs/RESEARCH_FINDINGS.md`
+`docs/README.md` indexes the whole tree. The distinction it draws is binding:
+`docs/reference/` is authoritative for the current code, `docs/reports/` is a
+dated record that is appended to and never rewritten.
+
+- `docs/README.md`
+- `results/README.md`
+- `docs/reports/REPOSITORY_AUDIT.md`
+- `docs/reference/DEFECT_REGISTER.md`
+- `docs/reference/DATA_DICTIONARY.md`
+- `docs/reference/SCIENTIFIC_ASSUMPTIONS.md`
+- `docs/reference/EXPERIMENT_PROTOCOL.md`
+- `docs/reference/LIMITATIONS.md`
+- `docs/reports/RESEARCH_FINDINGS.md`
+- `CHANGELOG.md` (structural and scientific changes, dated)
+- `CONTRIBUTING.md` (the four rules that keep claims and code in step)
 
 Every experiment must save a manifest containing: Git SHA; environment and
 package versions; input hashes; dataset counts and date range; feature list;

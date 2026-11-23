@@ -68,8 +68,8 @@ beforeEach(() => {
   api.forecasts.mockResolvedValue({
     available: false,
     reason: "no persisted forecast projection found under results/",
-    operational: { path: "results/operational_forward_forecast.csv", rows: [] },
-    recursive: { path: "results/five_day_recursive_forecast.csv", rows: [] },
+    operational: { path: "results/legacy_chapter/operational_forward_forecast.csv", rows: [] },
+    recursive: { path: "results/legacy_chapter/five_day_recursive_forecast.csv", rows: [] },
   });
 });
 

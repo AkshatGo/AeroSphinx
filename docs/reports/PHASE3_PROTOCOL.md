@@ -30,7 +30,7 @@ predictors deserve investigation.
 
 ## 2. Phase 3 audit corrections (already applied)
 
-See `docs/PHASE3_AUDIT.md`. Three corrections were applied **before** any
+See `docs/reports/PHASE3_AUDIT.md`. Three corrections were applied **before** any
 Phase 3 experiment ran.
 
 | ID | Correction | Effect |

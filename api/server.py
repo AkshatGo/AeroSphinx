@@ -9,7 +9,7 @@ Endpoints
 GET /api/health              -> {"status": "ok", "generated": <iso>}
 GET /api/status              -> repository + dataset + test summary
 GET /api/dataset             -> fused-frame summary + per-column missingness
-GET /api/experiments         -> Track A metrics from results/metrics.json
+GET /api/experiments         -> Track A metrics from results/legacy_chapter/metrics.json
 GET /api/series?start&end    -> daily series rows (date, pm25, sources)
 GET /api/coverage            -> per-source observation counts + overlap
 GET /api/manifests           -> list of run manifests with key fields
@@ -43,7 +43,8 @@ RESULTS = ROOT / "results"
 PROCESSED = DATA / "processed"
 
 FUSED = PROCESSED / "fused_dataset.csv"
-METRICS = RESULTS / "metrics.json"
+LEGACY = RESULTS / "legacy_chapter"
+METRICS = LEGACY / "metrics.json"
 TRACK_A = PROCESSED / "track_a_daily.csv"
 BASELINE_MANIFEST = RESULTS / "baseline" / "manifest.json"
 
@@ -214,7 +215,10 @@ def coverage_summary():
 
 def experiments_summary():
     if not METRICS.exists():
-        return {"available": False, "reason": "results/metrics.json not found"}
+        return {
+            "available": False,
+            "reason": "results/legacy_chapter/metrics.json not found",
+        }
     try:
         m = json.loads(METRICS.read_text(encoding="utf-8"))
     except json.JSONDecodeError:
@@ -415,15 +419,15 @@ def alignment_summary():
 
 
 def forecasts_summary():
-    """Persisted forecast projections read verbatim from results/."""
-    operational_path = RESULTS / "operational_forward_forecast.csv"
-    recursive_path = RESULTS / "five_day_recursive_forecast.csv"
+    """Persisted forecast projections read verbatim from the legacy artefacts."""
+    operational_path = LEGACY / "operational_forward_forecast.csv"
+    recursive_path = LEGACY / "five_day_recursive_forecast.csv"
     operational_rows = _artifact_rows(operational_path)
     recursive_rows = _artifact_rows(recursive_path)
     if not operational_rows and not recursive_rows:
         return {
             "available": False,
-            "reason": "no persisted forecast projection found under results/",
+            "reason": "no persisted forecast projection found under results/legacy_chapter/",
             "operational": {
                 "path": str(operational_path.relative_to(ROOT)),
                 "rows": [],

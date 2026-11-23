@@ -141,7 +141,7 @@ export function ResearchLab() {
                 </p>
                 <p className="text-xs text-fg-muted">
                   Metrics for this experiment are read from{" "}
-                  <code className="text-fg">results/metrics.json</code>. If a
+                  <code className="text-fg">results/legacy_chapter/metrics.json</code>. If a
                   model was not fitted for this configuration, it is shown as
                   unavailable rather than estimated.
                 </p>
@@ -163,7 +163,7 @@ export function ResearchLab() {
             {m && !m.available && (
               <EmptyState
                 title="Metrics unavailable"
-                description={m.reason ?? "results/metrics.json not found"}
+                description={m.reason ?? "results/legacy_chapter/metrics.json not found"}
               />
             )}
             {m?.available && (

@@ -19,6 +19,7 @@ Usage::
     aerosphinx run-fusion            # Phase 6 fused dataset and gate
     aerosphinx run-matrix            # M0-M8 experiment matrix
     aerosphinx check-claims          # README numbers vs persisted artefacts
+    aerosphinx check-docs            # every internal link and artefact path
     aerosphinx check-reproducibility # re-run the matrix, compare with results/
     aerosphinx serve --port 8787     # API + built frontend
 
@@ -50,6 +51,7 @@ _SCRIPTS = {
     "run-sufficiency": ["run_season_sufficiency.py"],
     "run-alignment": ["run_daily_alignment.py"],
     "check-claims": ["check_claims.py"],
+    "check-docs": ["check_docs.py"],
     "check-reproducibility": ["check_reproducibility.py"],
     "check-deploy": ["check_deploy.py"],
 }
@@ -152,6 +154,7 @@ def build_parser() -> argparse.ArgumentParser:
         ("run-sufficiency", "compute per-season source sufficiency"),
         ("run-alignment", "emit daily coverage, missingness and alignment report"),
         ("check-claims", "verify README numbers against persisted artefacts"),
+        ("check-docs", "verify internal documentation links and artefact paths"),
         (
             "check-reproducibility",
             "re-run the matrix and compare it with the committed artefacts",

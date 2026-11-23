@@ -35,7 +35,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-__all__ = ["main"]
+__all__ = ["main", "subcommands"]
 
 ROOT = Path(__file__).resolve().parents[2]
 """Repository root, when the package is used from a source checkout."""
@@ -171,6 +171,21 @@ def build_parser() -> argparse.ArgumentParser:
 
     sub.add_parser("doctor", help="report which inputs and artefacts are present")
     return parser
+
+
+def subcommands() -> list[str]:
+    """Every subcommand name, as argparse will accept it.
+
+    Public so documentation and CI can check that a command named in the
+    README exists, without shelling out to a subprocess or reaching into
+    argparse's private ``_SubParsersAction``.
+    """
+    parser = build_parser()
+    for action in parser._actions:
+        choices = getattr(action, "choices", None)
+        if isinstance(choices, dict):
+            return sorted(choices)
+    return []
 
 
 def main(argv: list[str] | None = None) -> int:

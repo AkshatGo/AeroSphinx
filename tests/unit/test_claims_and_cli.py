@@ -9,6 +9,7 @@ numbers no artefact produced, and a season table published an R2 on two days.
 from __future__ import annotations
 
 import json
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -22,6 +23,7 @@ sys.path.insert(0, str(ROOT / "scripts"))
 
 import check_claims  # noqa: E402
 
+from aerosphinx.cli import subcommands  # noqa: E402
 from aerosphinx.tracks.experiment_matrix import (  # noqa: E402
     MIN_REPORTABLE_N,
     _grouped,
@@ -148,3 +150,21 @@ def test_grouped_suppresses_a_season_below_the_threshold():
     healthy = table[table["season"] == "pre_monsoon"].iloc[0]
     assert bool(healthy["reported"]) is True
     assert not pd.isna(healthy["MAE"])
+
+
+def test_every_command_named_in_the_readme_exists():
+    """The README is the front door; it may not name a command that is gone."""
+    readme = (ROOT / "README.md").read_text(encoding="utf-8")
+    known = set(subcommands())
+    named = set(re.findall(r"aerosphinx ([\w-]+)", readme))
+    assert named, "expected at least one aerosphinx invocation in the README"
+    assert not sorted(named - known), sorted(named - known)
+
+
+def test_every_make_target_named_in_the_readme_exists():
+    readme = (ROOT / "README.md").read_text(encoding="utf-8")
+    makefile = (ROOT / "Makefile").read_text(encoding="utf-8")
+    targets = set(re.findall(r"^([a-zA-Z][\w-]*):", makefile, re.MULTILINE))
+    named = set(re.findall(r"^make ([\w-]+)", readme, re.MULTILINE))
+    assert named, "expected at least one make invocation in the README"
+    assert not sorted(named - targets), sorted(named - targets)

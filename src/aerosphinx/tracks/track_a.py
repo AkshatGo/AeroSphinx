@@ -29,12 +29,12 @@ import pandas as pd
 from aerosphinx.evaluation.metrics import evaluate
 from aerosphinx.evaluation.splits import Fold, rolling_origin_folds
 from aerosphinx.evaluation.uncertainty import compare_models, paired_wilcoxon
+from aerosphinx.features.seasonal import assign_season
 from aerosphinx.models.baselines import (
     PersistenceBaseline,
     SeasonalNaiveBaseline,
     persistence_forecast,
 )
-from aerosphinx.features.seasonal import assign_season
 from aerosphinx.models.supervised import build_model
 from aerosphinx.tracks.diagnostics import cold_start_report, coverage_by_fold
 
@@ -174,8 +174,7 @@ def run_track_a(
     )
     if not folds:
         raise ValueError(
-            "no folds could be constructed; reduce min_train_days or "
-            "test_block_days"
+            "no folds could be constructed; reduce min_train_days or " "test_block_days"
         )
 
     prediction_rows: list[pd.DataFrame] = []
@@ -256,7 +255,8 @@ def run_track_a(
 
     # Model columns: every prediction series except the bookkeeping fields.
     model_columns = [
-        c for c in predictions.columns
+        c
+        for c in predictions.columns
         if c not in ("Date", "Fold", "Target", "seasonal_lookback")
     ]
 
@@ -332,9 +332,7 @@ def run_track_a(
 
     # Fold-level aggregate metrics on the *complete* evaluation rows, which
     # is the set every model is judged on.
-    fold_complete = _fold_complete_metrics(
-        predictions, model_columns, target, baseline
-    )
+    fold_complete = _fold_complete_metrics(predictions, model_columns, target, baseline)
 
     # Block-aware inference (Phase 3 audit D-018). The naive day-level
     # bootstrap treats serially correlated errors as independent and so
@@ -365,9 +363,9 @@ def run_track_a(
             complete["Date"].min().date().isoformat(),
             complete["Date"].max().date().isoformat(),
         ],
-        "n_folds_extrapolating": int(coverage["extrapolating"].sum())
-        if not coverage.empty
-        else 0,
+        "n_folds_extrapolating": (
+            int(coverage["extrapolating"].sum()) if not coverage.empty else 0
+        ),
     }
 
     return TrackAResult(
@@ -428,12 +426,22 @@ def _block_inference(
         dates = usable["Date"]
 
         block = moving_block_bootstrap_ci(
-            y, a, b, dates=dates, n_samples=bootstrap_samples,
-            alpha=alpha, seed=seed,
+            y,
+            a,
+            b,
+            dates=dates,
+            n_samples=bootstrap_samples,
+            alpha=alpha,
+            seed=seed,
         )
         year_block = year_blocked_bootstrap_ci(
-            y, a, b, dates=dates, n_samples=bootstrap_samples,
-            alpha=alpha, seed=seed,
+            y,
+            a,
+            b,
+            dates=dates,
+            n_samples=bootstrap_samples,
+            alpha=alpha,
+            seed=seed,
         )
         fold_level = fold_level_comparison(y, a, b, usable["Fold"].to_numpy(), alpha)
 
@@ -451,12 +459,16 @@ def _block_inference(
                 "year_ci_high": year_block["ci_high"],
                 "year_significant": year_block["significant"],
                 "n_years": year_block.get("n_years", 0),
-                "fold_fractions_a_better": float(
-                    fold_level["folds_a_better_fraction"].iloc[0]
-                ) if not fold_level.empty else float("nan"),
-                "folds_a_better": int(
-                    fold_level["significant_folds"].iloc[0]
-                ) if not fold_level.empty else 0,
+                "fold_fractions_a_better": (
+                    float(fold_level["folds_a_better_fraction"].iloc[0])
+                    if not fold_level.empty
+                    else float("nan")
+                ),
+                "folds_a_better": (
+                    int(fold_level["significant_folds"].iloc[0])
+                    if not fold_level.empty
+                    else 0
+                ),
                 "n_folds": int(len(fold_level)),
             }
         )
@@ -524,10 +536,11 @@ def _fold_complete_metrics(
         for column in pivot.columns:
             if column != baseline:
                 table[f"{column}_minus_{baseline}"] = table.apply(
-                    lambda row: row["MAE"]
-                    - pivot.loc[row["fold"], baseline]
-                    if row["model"] == column
-                    else np.nan,
+                    lambda row: (
+                        row["MAE"] - pivot.loc[row["fold"], baseline]
+                        if row["model"] == column
+                        else np.nan
+                    ),
                     axis=1,
                 )
     return table
@@ -558,7 +571,9 @@ def _fold_summary(
                 "MAE_min": float(np.min(maes)),
                 "MAE_max": float(np.max(maes)),
                 "MAE_worst_fold_ratio": (
-                    float(np.max(maes) / np.mean(maes)) if np.mean(maes) > 0 else float("nan")
+                    float(np.max(maes) / np.mean(maes))
+                    if np.mean(maes) > 0
+                    else float("nan")
                 ),
                 "R2_mean": float(np.nanmean(r2s)),
                 "R2_min": float(np.nanmin(r2s)),

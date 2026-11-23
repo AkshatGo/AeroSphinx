@@ -53,8 +53,16 @@ def feature_frame() -> pd.DataFrame:
 
 
 FEATURES = [
-    "PM25_Lag_1", "PM25_Lag_2", "PM25_Lag_3", "PM25_Lag_7",
-    "PM25_Roll3", "PM25_Roll7", "day_sin", "day_cos", "month_sin", "month_cos",
+    "PM25_Lag_1",
+    "PM25_Lag_2",
+    "PM25_Lag_3",
+    "PM25_Lag_7",
+    "PM25_Roll3",
+    "PM25_Roll7",
+    "day_sin",
+    "day_cos",
+    "month_sin",
+    "month_cos",
 ]
 
 
@@ -113,9 +121,11 @@ def test_seasonal_baseline_recovers_the_seasonal_cycle():
         {
             "Date": pd.date_range("2018-01-01", "2020-12-31", freq="D"),
             "PM25": [
-                200.0 if d.month in (11, 12, 1)
-                else 100.0 if d.month in (6, 7, 8)
-                else 50.0
+                (
+                    200.0
+                    if d.month in (11, 12, 1)
+                    else 100.0 if d.month in (6, 7, 8) else 50.0
+                )
                 for d in pd.date_range("2018-01-01", "2020-12-31", freq="D")
             ],
         }
@@ -139,30 +149,22 @@ def test_climatology_uses_only_the_recent_years():
         }
     )
     builder = ClimatologyBuilder(lookback_years=2).fit(frame)
-    prediction = builder.predict(
-        pd.DataFrame({"Date": pd.to_datetime(["2019-01-01"])})
-    )
+    prediction = builder.predict(pd.DataFrame({"Date": pd.to_datetime(["2019-01-01"])}))
     # Only 2018 and 2019 are in the lookback window.
     assert prediction[0] == pytest.approx(150.0)
 
 
 def test_climatology_never_sees_the_test_period():
     """A climatology fitted on training data must not use test observations."""
-    train = pd.DataFrame(
-        {"Date": pd.to_datetime(["2018-01-01"]), "PM25": [10.0]}
-    )
-    test = pd.DataFrame(
-        {"Date": pd.to_datetime(["2019-01-01"]), "PM25": [999.0]}
-    )
+    train = pd.DataFrame({"Date": pd.to_datetime(["2018-01-01"]), "PM25": [10.0]})
+    test = pd.DataFrame({"Date": pd.to_datetime(["2019-01-01"]), "PM25": [999.0]})
     builder = ClimatologyBuilder(lookback_years=3).fit(train)
     assert builder.predict(test)[0] == pytest.approx(10.0)
 
 
 def test_climatology_falls_back_to_a_nearby_day_of_year():
     """A missing day-of-year key must fall back within the permitted offset."""
-    train = pd.DataFrame(
-        {"Date": pd.to_datetime(["2018-01-01"]), "PM25": [42.0]}
-    )
+    train = pd.DataFrame({"Date": pd.to_datetime(["2018-01-01"]), "PM25": [42.0]})
     # 2018-01-04 is day-of-year 4, absent from the training set.
     test = pd.DataFrame({"Date": pd.to_datetime(["2018-01-04"])})
     builder = ClimatologyBuilder(lookback_years=3, max_day_offset=3).fit(train)

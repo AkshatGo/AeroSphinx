@@ -156,7 +156,9 @@ def load_station_met_daily(
         "per_column_screened_values": screened,
         "excluded_columns": list(excluded_columns),
         "mean_columns_present_per_accepted_day": (
-            round(float(n_columns_present[accepted].mean()), 3) if accepted.any() else 0.0
+            round(float(n_columns_present[accepted].mean()), 3)
+            if accepted.any()
+            else 0.0
         ),
     }
 

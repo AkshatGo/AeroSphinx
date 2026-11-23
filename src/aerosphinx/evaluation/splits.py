@@ -21,7 +21,12 @@ from dataclasses import dataclass
 
 import pandas as pd
 
-__all__ = ["Fold", "rolling_origin_folds", "expanding_window_folds", "assert_no_leakage"]
+__all__ = [
+    "Fold",
+    "rolling_origin_folds",
+    "expanding_window_folds",
+    "assert_no_leakage",
+]
 
 
 @dataclass(frozen=True)
@@ -147,8 +152,10 @@ def rolling_origin_folds(
     index = 0
     while True:
         train_start = start
-        train_end = start + pd.Timedelta(days=min_train_days - 1) + pd.Timedelta(
-            days=index * step_days
+        train_end = (
+            start
+            + pd.Timedelta(days=min_train_days - 1)
+            + pd.Timedelta(days=index * step_days)
         )
         validation_start = train_end + pd.Timedelta(days=1)
         validation_end = validation_start + pd.Timedelta(days=validation_days - 1)
@@ -196,7 +203,9 @@ def expanding_window_folds(
     )
 
 
-def assert_no_leakage(fold: Fold, frame: pd.DataFrame, date_column: str = "Date") -> None:
+def assert_no_leakage(
+    fold: Fold, frame: pd.DataFrame, date_column: str = "Date"
+) -> None:
     """Assert that a fold's training block precedes its test block.
 
     Raises
@@ -207,15 +216,11 @@ def assert_no_leakage(fold: Fold, frame: pd.DataFrame, date_column: str = "Date"
     """
     dates = pd.to_datetime(frame[date_column])
 
-    train_dates = dates[
-        (dates >= fold.train_start) & (dates <= fold.train_end)
-    ]
+    train_dates = dates[(dates >= fold.train_start) & (dates <= fold.train_end)]
     test_dates = dates[(dates >= fold.test_start) & (dates <= fold.test_end)]
 
     if not train_dates.empty and not test_dates.empty:
-        assert (
-            train_dates.max() < test_dates.min()
-        ), (
+        assert train_dates.max() < test_dates.min(), (
             f"fold {fold.index} leaks: latest training date "
             f"{train_dates.max().date()} is not before the earliest test date "
             f"{test_dates.min().date()}"
@@ -226,9 +231,6 @@ def assert_no_leakage(fold: Fold, frame: pd.DataFrame, date_column: str = "Date"
             (dates >= fold.validation_start) & (dates <= fold.validation_end)
         ]
         if not validation_dates.empty and not test_dates.empty:
-            assert (
-                validation_dates.max() < test_dates.min()
-            ), (
-                f"fold {fold.index} leaks: validation reaches into the test "
-                f"block"
+            assert validation_dates.max() < test_dates.min(), (
+                f"fold {fold.index} leaks: validation reaches into the test " f"block"
             )

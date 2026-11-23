@@ -123,7 +123,9 @@ class MerraAudit:
             "unit_mismatches": dict(sorted(self.unit_mismatches.items())),
             "out_of_range_values": dict(sorted(self.out_of_range_values.items())),
             "grid_cells": {str(k): v for k, v in sorted(self.grid_cells.items())},
-            "time_signatures": {str(k): v for k, v in sorted(self.time_signatures.items())},
+            "time_signatures": {
+                str(k): v for k, v in sorted(self.time_signatures.items())
+            },
             "days_per_granule": dict(sorted(self.days_per_granule.items())),
             "n_missing_values": self.n_missing_values,
             "date_start": self.date_start,
@@ -172,9 +174,7 @@ def validate_merra(merra_dir: Path | str) -> MerraAudit:
             )
 
             for name in dataset.data_vars:
-                audit.variable_presence[name] = (
-                    audit.variable_presence.get(name, 0) + 1
-                )
+                audit.variable_presence[name] = audit.variable_presence.get(name, 0) + 1
                 unit = str(dataset[name].attrs.get("units"))
                 audit.declared_units.setdefault(name, set()).add(unit)
                 expected = MERRA_EXPECTED_UNITS.get(name)
@@ -260,7 +260,11 @@ def station_cross_check(
     station = pd.concat(frames, ignore_index=True)
     station = station.dropna(subset=["_timestamp"])
     station = station.rename(
-        columns={"AT (°C)": "station_AT_C", "RH (%)": "station_RH", "BP (mmHg)": "station_BP_mmHg"}
+        columns={
+            "AT (°C)": "station_AT_C",
+            "RH (%)": "station_RH",
+            "BP (mmHg)": "station_BP_mmHg",
+        }
     )
 
     rows = []
@@ -294,9 +298,7 @@ def station_cross_check(
                     (17.67 * temperature_c) / (temperature_c + 243.5)
                 )
                 vapour = (record["station_RH"] / 100.0) * saturation
-                record["station_q_implied"] = (
-                    0.622 * vapour / (record["PS_Pa"] / 100.0)
-                )
+                record["station_q_implied"] = 0.622 * vapour / (record["PS_Pa"] / 100.0)
                 # Sea-level minus surface pressure is the elevation term.
                 record["SLP_minus_PS_hPa"] = (
                     record["SLP_Pa"] - record["PS_Pa"]

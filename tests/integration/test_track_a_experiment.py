@@ -13,15 +13,19 @@ import pandas as pd
 import pytest
 
 from aerosphinx.evaluation.splits import rolling_origin_folds
-from aerosphinx.tracks.track_a import DEFAULT_FEATURES, run_track_a
 from aerosphinx.tracks.diagnostics import coverage_by_fold, regime_coverage
+from aerosphinx.tracks.track_a import DEFAULT_FEATURES, run_track_a
 
 pytestmark = [
     pytest.mark.integration,
     pytest.mark.scientific,
     pytest.mark.skipif(
-        not (Path(__file__).resolve().parents[2] / "data" / "processed"
-             / "track_a_features.csv").exists(),
+        not (
+            Path(__file__).resolve().parents[2]
+            / "data"
+            / "processed"
+            / "track_a_features.csv"
+        ).exists(),
         reason="Track A features not built; run scripts/build_track_a_dataset.py",
     ),
 ]
@@ -60,8 +64,7 @@ def test_every_model_is_scored_on_identical_rows(result):
     comparison between models scored on different windows is void.
     """
     model_columns = [
-        c for c in result.predictions.columns
-        if c not in ("Date", "Fold", "Target")
+        c for c in result.predictions.columns if c not in ("Date", "Fold", "Target")
     ]
     complete = result.predictions.dropna(subset=model_columns + ["Target"])
     assert len(complete) == result.metadata["n_rows_evaluated"]
@@ -98,8 +101,12 @@ def test_seasonal_baseline_is_significantly_worse(result):
 def test_comparisons_carry_uncertainty(result):
     """Every comparison must carry a paired test and an interval."""
     required = {
-        "wilcoxon_pvalue", "bootstrap_ci_low", "bootstrap_ci_high",
-        "significant", "verdict", "n_pairs",
+        "wilcoxon_pvalue",
+        "bootstrap_ci_low",
+        "bootstrap_ci_high",
+        "significant",
+        "verdict",
+        "n_pairs",
     }
     assert required.issubset(result.comparisons.columns)
     assert result.comparisons["n_pairs"].min() > 0

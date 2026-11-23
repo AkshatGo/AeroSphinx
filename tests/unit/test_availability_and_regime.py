@@ -120,9 +120,7 @@ def test_regime_assignment_uses_calendar_only():
     regimes = assign_regime(dates)
     months = dates.month.to_numpy()
     for month, regime in zip(months, regimes):
-        expected = next(
-            name for name, members in REGIMES.items() if month in members
-        )
+        expected = next(name for name, members in REGIMES.items() if month in members)
         assert regime == expected
 
 

@@ -36,7 +36,10 @@ from aerosphinx.features.lags import (  # noqa: E402
 )
 from aerosphinx.ingestion.cpcb import CPCBRules, load_cpcb_daily  # noqa: E402
 from aerosphinx.quality.coverage import compute_coverage  # noqa: E402
-from aerosphinx.quality.provenance import build_provenance, write_provenance  # noqa: E402
+from aerosphinx.quality.provenance import (  # noqa: E402
+    build_provenance,
+    write_provenance,
+)
 
 
 def load_config(path: Path) -> dict:
@@ -53,10 +56,7 @@ def build_features(frame: pd.DataFrame, config: dict) -> pd.DataFrame:
     """
     out = frame.copy()
 
-    specs = [
-        LagSpec(f"PM25_Lag_{lag}", lag)
-        for lag in config["features"]["pm25_lags"]
-    ]
+    specs = [LagSpec(f"PM25_Lag_{lag}", lag) for lag in config["features"]["pm25_lags"]]
     lags = calendar_lags(out, "PM25", specs)
     for column in lags.columns:
         out[column] = lags[column].to_numpy()
@@ -89,9 +89,7 @@ def main() -> int:
     root = args.root.resolve()
     common = load_config(root / "config" / "common.yaml")
     quality = load_config(root / "config" / "data_quality.yaml")
-    track_a = load_config(
-        args.config or (root / "config" / "track_a.yaml")
-    )
+    track_a = load_config(args.config or (root / "config" / "track_a.yaml"))
 
     cpcb_rules = quality["cpcb"]
     rules = CPCBRules(
@@ -110,19 +108,25 @@ def main() -> int:
     cpcb_dir = root / common["paths"]["cpcb_dir"]
     print(f"[1/4] reading {cpcb_dir}")
     result = load_cpcb_daily(cpcb_dir, rules)
-    print(f"      {result.n_days} days accepted "
-          f"({result.start.date()} -> {result.end.date()})")
+    print(
+        f"      {result.n_days} days accepted "
+        f"({result.start.date()} -> {result.end.date()})"
+    )
 
     audit = result.audit
     coverage = compute_coverage(result.frame)
-    print(f"[2/4] coverage {coverage.coverage_fraction:.1%} of the calendar, "
-          f"{len(coverage.gaps)} gaps, longest "
-          f"{max((g['gap_days'] for g in coverage.gaps), default=0)} days")
+    print(
+        f"[2/4] coverage {coverage.coverage_fraction:.1%} of the calendar, "
+        f"{len(coverage.gaps)} gaps, longest "
+        f"{max((g['gap_days'] for g in coverage.gaps), default=0)} days"
+    )
 
     features = build_features(result.frame, track_a)
     n_complete = int(features[["PM25", "PM25_Lag_1"]].notna().all(axis=1).sum())
-    print(f"[3/4] features: {n_complete} rows with a complete 1-day lag "
-          f"(the rest have no previous calendar day)")
+    print(
+        f"[3/4] features: {n_complete} rows with a complete 1-day lag "
+        f"(the rest have no previous calendar day)"
+    )
 
     processed = root / common["paths"]["processed_dir"]
     manifests = root / common["paths"]["manifests_dir"]
@@ -144,7 +148,10 @@ def main() -> int:
         },
         dataset={
             "daily_rows": result.n_days,
-            "date_range": [result.start.date().isoformat(), result.end.date().isoformat()],
+            "date_range": [
+                result.start.date().isoformat(),
+                result.end.date().isoformat(),
+            ],
             "calendar_span_days": coverage.calendar_span_days,
             "missing_days": coverage.missing_days,
             "n_gaps": len(coverage.gaps),
@@ -169,9 +176,7 @@ def main() -> int:
         },
     )
     provenance.dataset["audit"] = audit.as_dict()
-    manifest_path = write_provenance(
-        provenance, manifests / "track_a_ingestion.json"
-    )
+    manifest_path = write_provenance(provenance, manifests / "track_a_ingestion.json")
 
     print(f"[4/4] wrote {daily_path.relative_to(root)}")
     print(f"      wrote {feature_path.relative_to(root)}")

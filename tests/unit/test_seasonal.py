@@ -157,9 +157,7 @@ def test_legacy_season_helpers_handle_a_series_index():
     """The delegation must preserve index alignment for a Series input."""
     from aerosphinx.tracks.track_a import _season
 
-    dates = pd.Series(
-        pd.to_datetime(["2024-02-01", "2024-06-01"]), index=[7, 9]
-    )
+    dates = pd.Series(pd.to_datetime(["2024-02-01", "2024-06-01"]), index=[7, 9])
     labels = _season(dates)
     assert list(labels.index) == [7, 9]
     assert labels.tolist() == ["winter", "monsoon"]

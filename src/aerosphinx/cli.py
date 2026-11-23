@@ -113,9 +113,13 @@ def _doctor(root: Path) -> int:
     ]
     width = max(len(label) for label, _ in checks)
     for label, path in checks:
-        print(f"{label.ljust(width)}  {'ok      ' if path.exists() else 'MISSING '}  {path}")
+        print(
+            f"{label.ljust(width)}  {'ok      ' if path.exists() else 'MISSING '}  {path}"
+        )
     node = shutil.which("node")
-    print(f"{'node (optional)'.ljust(width)}  {'ok      ' if node else 'absent  '}  {node or '-'}")
+    print(
+        f"{'node (optional)'.ljust(width)}  {'ok      ' if node else 'absent  '}  {node or '-'}"
+    )
     print(f"{'python'.ljust(width)}  ok        {sys.version.split()[0]}")
     return 0
 
@@ -126,7 +130,9 @@ def build_parser() -> argparse.ArgumentParser:
         description="Availability-aware multisource PM2.5 research platform.",
         epilog="Every subcommand delegates to a script under scripts/.",
     )
-    parser.add_argument("--version", action="version", version=f"aerosphinx {_version()}")
+    parser.add_argument(
+        "--version", action="version", version=f"aerosphinx {_version()}"
+    )
     parser.add_argument(
         "--root",
         default=None,

@@ -174,9 +174,7 @@ def _parse_date(attributes: dict, path: Path) -> pd.Timestamp | None:
     """The acquisition date, from the attributes or the filename."""
     raw = attributes.get("Acquisition_Date")
     if raw is not None:
-        parsed = pd.to_datetime(
-            _decode(raw).strip(), format="%d%b%Y", errors="coerce"
-        )
+        parsed = pd.to_datetime(_decode(raw).strip(), format="%d%b%Y", errors="coerce")
         if pd.notna(parsed):
             return parsed.normalize()
     match = re.search(r"3DIMG_(\d{2}[A-Z]{3}\d{4})_", path.name.upper())
@@ -211,9 +209,7 @@ def inspect_granules(
 
     for path in files:
         with h5py.File(path, "r") as handle:
-            attributes = {
-                key: _decode(value) for key, value in handle.attrs.items()
-            }
+            attributes = {key: _decode(value) for key, value in handle.attrs.items()}
             datasets = tuple(sorted(handle.keys()))
             aod_dataset = handle["AOD"]
             shape = tuple(aod_dataset.shape)
@@ -227,7 +223,11 @@ def inspect_granules(
             bindings = tuple(bindings)
 
             fill = aod_dataset.attrs.get("_FillValue")
-            fill_value = float(np.asarray(fill).ravel()[0]) if fill is not None else rules.fill_value
+            fill_value = (
+                float(np.asarray(fill).ravel()[0])
+                if fill is not None
+                else rules.fill_value
+            )
             has_scale = (
                 aod_dataset.attrs.get("scale_factor") is not None
                 or aod_dataset.attrs.get("add_offset") is not None
@@ -244,8 +244,12 @@ def inspect_granules(
         audit.fill_values[fill_value] = audit.fill_values.get(fill_value, 0) + 1
         audit.scale_factors[has_scale] = audit.scale_factors.get(has_scale, 0) + 1
 
-        latitude_descending = bool(latitude[0] > latitude[-1]) if len(latitude) > 1 else False
-        longitude_ascending = bool(longitude[0] < longitude[-1]) if len(longitude) > 1 else False
+        latitude_descending = (
+            bool(latitude[0] > latitude[-1]) if len(latitude) > 1 else False
+        )
+        longitude_ascending = (
+            bool(longitude[0] < longitude[-1]) if len(longitude) > 1 else False
+        )
         audit.latitude_orders[latitude_descending] = (
             audit.latitude_orders.get(latitude_descending, 0) + 1
         )
@@ -437,7 +441,10 @@ def orientation_check(
     if not files:
         raise FileNotFoundError(f"No INSAT-3D granules found in {aod_dir}")
 
-    values: dict[str, dict[str, list[float]]] = {"dimension_scale": {}, "transposed": {}}
+    values: dict[str, dict[str, list[float]]] = {
+        "dimension_scale": {},
+        "transposed": {},
+    }
     for path in files:
         with h5py.File(path, "r") as handle:
             latitude = np.asarray(handle["latitude"][:], dtype=float)
@@ -469,8 +476,7 @@ def orientation_check(
         ocean = [m for name, m in means.items() if "ocean" in name.lower()]
         land = [m for name, m in means.items() if "land" in name.lower()]
         contrast = (
-            float(np.mean(land) - np.mean(ocean))
-            if ocean and land else float("nan")
+            float(np.mean(land) - np.mean(ocean)) if ocean and land else float("nan")
         )
         summary[hypothesis] = {
             "mean_AOD_by_box": means,
@@ -536,7 +542,8 @@ def window_sensitivity(
         series[half_width] = result.frame.set_index("Date")["AOD"]
         pixel_counts[half_width] = (
             float(result.frame["aod_valid_pixels"].mean())
-            if not result.frame.empty else float("nan")
+            if not result.frame.empty
+            else float("nan")
         )
 
     rows = []
@@ -549,15 +556,19 @@ def window_sensitivity(
             {
                 "window_half_width_deg": half_width,
                 "n_days": int(len(joined)),
-                "mean_AOD": float(joined["value"].mean()) if len(joined) else float("nan"),
+                "mean_AOD": (
+                    float(joined["value"].mean()) if len(joined) else float("nan")
+                ),
                 "mean_valid_pixels": pixel_counts[half_width],
                 "correlation_with_default": (
                     float(joined["value"].corr(joined["reference"]))
-                    if len(joined) > 2 else float("nan")
+                    if len(joined) > 2
+                    else float("nan")
                 ),
                 "max_absolute_difference": (
                     float((joined["value"] - joined["reference"]).abs().max())
-                    if len(joined) else float("nan")
+                    if len(joined)
+                    else float("nan")
                 ),
             }
         )

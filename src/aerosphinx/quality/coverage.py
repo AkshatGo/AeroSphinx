@@ -44,9 +44,7 @@ class CoverageReport:
         }
 
 
-def detect_calendar_gaps(
-    frame: pd.DataFrame, date_column: str = "Date"
-) -> list[dict]:
+def detect_calendar_gaps(frame: pd.DataFrame, date_column: str = "Date") -> list[dict]:
     """Find every gap between consecutive observed dates.
 
     A gap is a stretch of calendar days with no observation. Gaps matter
@@ -77,9 +75,7 @@ def detect_calendar_gaps(
     return gaps
 
 
-def compute_coverage(
-    frame: pd.DataFrame, date_column: str = "Date"
-) -> CoverageReport:
+def compute_coverage(frame: pd.DataFrame, date_column: str = "Date") -> CoverageReport:
     """Compute temporal coverage statistics for a daily frame."""
     if frame.empty:
         return CoverageReport(

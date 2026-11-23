@@ -66,39 +66,84 @@ class MatrixConfig:
 
 MATRIX: dict[str, MatrixConfig] = {
     "M0": MatrixConfig(
-        "M0", "Persistence baseline", GROUND_GROUPS, "persistence", "none", True,
+        "M0",
+        "Persistence baseline",
+        GROUND_GROUPS,
+        "persistence",
+        "none",
+        True,
         "How well does yesterday's PM2.5 predict tomorrow's?",
     ),
     "M1": MatrixConfig(
-        "M1", "CPCB-only global", GROUND_GROUPS, "learned", "none", True,
+        "M1",
+        "CPCB-only global",
+        GROUND_GROUPS,
+        "learned",
+        "none",
+        True,
         "Does a learned model using ground history alone beat persistence?",
     ),
     "M2": MatrixConfig(
-        "M2", "CPCB + INSAT AOD", GROUND_GROUPS + ("aod",), "learned", "none", False,
+        "M2",
+        "CPCB + INSAT AOD",
+        GROUND_GROUPS + ("aod",),
+        "learned",
+        "none",
+        False,
         "Does AOD add predictive information on matched dates?",
     ),
     "M3": MatrixConfig(
-        "M3", "CPCB + MERRA-2", GROUND_GROUPS + ("merra",), "learned", "none", False,
+        "M3",
+        "CPCB + MERRA-2",
+        GROUND_GROUPS + ("merra",),
+        "learned",
+        "none",
+        False,
         "Does MERRA-2 add predictive information on matched dates?",
     ),
     "M4": MatrixConfig(
-        "M4", "CPCB + INSAT + MERRA-2", GROUND_GROUPS + ("aod", "merra"), "learned", "none", False,
+        "M4",
+        "CPCB + INSAT + MERRA-2",
+        GROUND_GROUPS + ("aod", "merra"),
+        "learned",
+        "none",
+        False,
         "Does full multisource fusion beat the ground-only model?",
     ),
     "M5": MatrixConfig(
-        "M5", "Multisource global + season", GROUND_GROUPS + ("aod", "merra"), "learned", "categorical", False,
+        "M5",
+        "Multisource global + season",
+        GROUND_GROUPS + ("aod", "merra"),
+        "learned",
+        "categorical",
+        False,
         "Does a season categorical feature improve one global model?",
     ),
     "M6": MatrixConfig(
-        "M6", "Multisource + season interactions", GROUND_GROUPS + ("aod", "merra"), "learned", "interaction", False,
+        "M6",
+        "Multisource + season interactions",
+        GROUND_GROUPS + ("aod", "merra"),
+        "learned",
+        "interaction",
+        False,
         "Do season-feature interaction terms improve one global model?",
     ),
     "M7": MatrixConfig(
-        "M7", "Four independent seasonal models", GROUND_GROUPS + ("aod", "merra"), "learned", "independent", False,
+        "M7",
+        "Four independent seasonal models",
+        GROUND_GROUPS + ("aod", "merra"),
+        "learned",
+        "independent",
+        False,
         "Does a specialist per season beat the global model?",
     ),
     "M8": MatrixConfig(
-        "M8", "Seasonal with global fallback", GROUND_GROUPS + ("aod", "merra"), "learned", "fallback", False,
+        "M8",
+        "Seasonal with global fallback",
+        GROUND_GROUPS + ("aod", "merra"),
+        "learned",
+        "fallback",
+        False,
         "Does seasonal selection with an unconditional global fallback help?",
     ),
 }
@@ -171,7 +216,8 @@ def common_eligible(frame: pd.DataFrame, configs) -> pd.Series:
 
 def _base_features(config: MatrixConfig, frame: pd.DataFrame) -> list[str]:
     features = [
-        feature for feature in assemble_features(config.groups)
+        feature
+        for feature in assemble_features(config.groups)
         if feature in frame.columns
     ]
     if not features:
@@ -278,19 +324,27 @@ def _fit_predict(
     min_specialist_days: int,
 ) -> np.ndarray:
     if config.family == "persistence":
-        return pd.to_numeric(
-            test["PM25_Lag_1"], errors="coerce"
-        ).to_numpy(dtype=float)
+        return pd.to_numeric(test["PM25_Lag_1"], errors="coerce").to_numpy(dtype=float)
 
     base = _base_features(config, train)
     if config.season_mode == "independent":
         return _seasonal_predict(
-            config, train, test, base, model_name, min_specialist_days,
+            config,
+            train,
+            test,
+            base,
+            model_name,
+            min_specialist_days,
             use_fallback=False,
         )
     if config.season_mode == "fallback":
         return _seasonal_predict(
-            config, train, test, base, model_name, min_specialist_days,
+            config,
+            train,
+            test,
+            base,
+            model_name,
+            min_specialist_days,
             use_fallback=True,
         )
 
@@ -306,8 +360,19 @@ def _fit_predict(
 def _empty_frames() -> dict[str, pd.DataFrame]:
     return {
         "metrics": pd.DataFrame(
-            columns=["track", "config", "model", "n", "n_missing", "folds",
-                     "MAE", "RMSE", "MedianAE", "R2", "Mean_Bias"]
+            columns=[
+                "track",
+                "config",
+                "model",
+                "n",
+                "n_missing",
+                "folds",
+                "MAE",
+                "RMSE",
+                "MedianAE",
+                "R2",
+                "Mean_Bias",
+            ]
         ),
         "by_season": pd.DataFrame(
             columns=["track", "config", "model", "season", "n", "MAE", "RMSE", "R2"]
@@ -424,7 +489,9 @@ def _common(predictions: pd.DataFrame):
                     "n": int(metrics["n"]),
                     "MAE": metrics["MAE"],
                     "RMSE": metrics["RMSE"],
-                    "MedianAE": float(np.median(errors)) if errors.size else float("nan"),
+                    "MedianAE": (
+                        float(np.median(errors)) if errors.size else float("nan")
+                    ),
                     "R2": metrics["R2"],
                 }
             )
@@ -504,7 +571,8 @@ def run_matrix(
                         "track": track,
                         "config": config.id,
                         "model": (
-                            "persistence" if config.family == "persistence"
+                            "persistence"
+                            if config.family == "persistence"
                             else model_name
                         ),
                         "Fold": fold.index,
@@ -514,9 +582,7 @@ def run_matrix(
                     }
                 )
 
-    columns = [
-        "track", "config", "model", "Fold", "Date", "Target", "Prediction"
-    ]
+    columns = ["track", "config", "model", "Fold", "Date", "Target", "Prediction"]
     prediction_frame = pd.DataFrame(records, columns=columns)
     if prediction_frame.empty:
         empty = _empty_frames()
@@ -532,9 +598,7 @@ def run_matrix(
             folds=[fold.as_dict() for fold in folds],
         )
 
-    prediction_frame["season"] = assign_season(
-        prediction_frame["Date"]
-    ).to_numpy()
+    prediction_frame["season"] = assign_season(prediction_frame["Date"]).to_numpy()
     prediction_frame["year"] = pd.to_datetime(
         prediction_frame["Date"]
     ).dt.year.to_numpy()

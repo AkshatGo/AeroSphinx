@@ -164,13 +164,15 @@ def test_cross_check_aligns_utc_to_local(tmp_path):
     cpcb_dir.mkdir()
     rows = []
     for hour in (17, 18, 19):
-        rows.append({
-            "Timestamp": f"2024-01-01 {hour:02d}:00:00",
-            "PM2.5 (µg/m³)": 80.0,
-            "AT (°C)": 17.0,
-            "RH (%)": 50.0,
-            "BP (mmHg)": 725.0,
-        })
+        rows.append(
+            {
+                "Timestamp": f"2024-01-01 {hour:02d}:00:00",
+                "PM2.5 (µg/m³)": 80.0,
+                "AT (°C)": 17.0,
+                "RH (%)": 50.0,
+                "BP (mmHg)": 725.0,
+            }
+        )
     pd.DataFrame(rows).to_csv(cpcb_dir / "a.csv", index=False)
 
     cross = station_cross_check(merra_dir, cpcb_dir)
@@ -188,13 +190,16 @@ def test_cross_check_computes_the_elevation_term(tmp_path):
     cpcb_dir = tmp_path / "cpcb"
     cpcb_dir.mkdir()
     pd.DataFrame(
-        [{
-            "Timestamp": f"2024-01-01 {hour:02d}:00:00",
-            "PM2.5 (µg/m³)": 80.0,
-            "AT (°C)": 17.0,
-            "RH (%)": 50.0,
-            "BP (mmHg)": 725.0,
-        } for hour in (17, 18, 19)]
+        [
+            {
+                "Timestamp": f"2024-01-01 {hour:02d}:00:00",
+                "PM2.5 (µg/m³)": 80.0,
+                "AT (°C)": 17.0,
+                "RH (%)": 50.0,
+                "BP (mmHg)": 725.0,
+            }
+            for hour in (17, 18, 19)
+        ]
     ).to_csv(cpcb_dir / "a.csv", index=False)
 
     cross = station_cross_check(merra_dir, cpcb_dir)

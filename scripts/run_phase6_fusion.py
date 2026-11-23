@@ -48,7 +48,10 @@ from aerosphinx.features.groups import describe_groups  # noqa: E402
 from aerosphinx.ingestion.aod import AODRules, load_aod_daily  # noqa: E402
 from aerosphinx.ingestion.merra import load_merra_daily  # noqa: E402
 from aerosphinx.ingestion.station_met import load_station_met_daily  # noqa: E402
-from aerosphinx.quality.provenance import build_provenance, write_provenance  # noqa: E402
+from aerosphinx.quality.provenance import (  # noqa: E402
+    build_provenance,
+    write_provenance,
+)
 
 
 def main() -> int:
@@ -84,8 +87,10 @@ def main() -> int:
         print(f"      ERROR: {features_csv} is missing; run make build-track-a")
         return 1
     daily = pd.read_csv(features_csv, parse_dates=["Date"])
-    print(f"      ground: {len(daily)} rows, {daily['Date'].min().date()} -> "
-          f"{daily['Date'].max().date()}")
+    print(
+        f"      ground: {len(daily)} rows, {daily['Date'].min().date()} -> "
+        f"{daily['Date'].max().date()}"
+    )
 
     station_met = load_station_met_daily(
         root / paths["cpcb_dir"],
@@ -110,8 +115,10 @@ def main() -> int:
     )
     print(f"      station_met: {len(station_met.frame)} accepted days")
     print(f"      merra:       {len(merra.frame)} days")
-    print(f"      aod:         {len(aod.frame)} days "
-          f"({int((aod.frame['aod_valid_pixels'] == 0).sum())} with no valid pixel)")
+    print(
+        f"      aod:         {len(aod.frame)} days "
+        f"({int((aod.frame['aod_valid_pixels'] == 0).sum())} with no valid pixel)"
+    )
 
     print("\n[2/5] fusing on the ground calendar (no fill, no imputation)")
     fused = build_fused_dataset(
@@ -133,10 +140,11 @@ def main() -> int:
         aod=aod.frame,
     )
     for entry in validation["checks"]:
-        print(f"      {'PASS' if entry['passed'] else 'FAIL'}  {entry['check']}: "
-              f"{entry['detail']}")
-    print(f"      {validation['n_checks']} checks, "
-          f"{validation['n_failed']} failed")
+        print(
+            f"      {'PASS' if entry['passed'] else 'FAIL'}  {entry['check']}: "
+            f"{entry['detail']}"
+        )
+    print(f"      {validation['n_checks']} checks, " f"{validation['n_failed']} failed")
 
     fused.checks = validation
     if not validation["passed"]:
@@ -149,17 +157,23 @@ def main() -> int:
     print("\n[4/5] availability by source")
     for source in SOURCE_GROUPS:
         detail = fused.summary["per_source"][source]
-        print(f"      {source:12s} observed {detail['fused_rows_observed']:4d} rows "
-              f"({detail['fused_rows_observed_fraction']:.1%}), "
-              f"target mean observed "
-              f"{detail['target_mean_when_observed']:.2f} vs unobserved "
-              f"{detail['target_mean_when_unobserved']:.2f}, "
-              f"max age {detail['max_observation_age_days']}")
-    print(f"      rows with all {len(fused.requested_sources)} sources: "
-          f"{fused.summary['rows_with_all_sources_observed']} "
-          f"({fused.summary['fraction_with_all_sources_observed']:.1%})")
-    print(f"      rows with no environmental source: "
-          f"{fused.summary['rows_with_no_source_observed']}")
+        print(
+            f"      {source:12s} observed {detail['fused_rows_observed']:4d} rows "
+            f"({detail['fused_rows_observed_fraction']:.1%}), "
+            f"target mean observed "
+            f"{detail['target_mean_when_observed']:.2f} vs unobserved "
+            f"{detail['target_mean_when_unobserved']:.2f}, "
+            f"max age {detail['max_observation_age_days']}"
+        )
+    print(
+        f"      rows with all {len(fused.requested_sources)} sources: "
+        f"{fused.summary['rows_with_all_sources_observed']} "
+        f"({fused.summary['fraction_with_all_sources_observed']:.1%})"
+    )
+    print(
+        f"      rows with no environmental source: "
+        f"{fused.summary['rows_with_no_source_observed']}"
+    )
 
     run_id = args.run_id or (
         f"F-fusion-{datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')}"
@@ -179,9 +193,7 @@ def main() -> int:
             f"{source}_observation_age_days",
         ]
     mask_columns += ["n_sources_observed", "all_sources_observed"]
-    fused.frame[mask_columns].to_csv(
-        out_dir / "availability_mask.csv", index=False
-    )
+    fused.frame[mask_columns].to_csv(out_dir / "availability_mask.csv", index=False)
 
     (out_dir / "availability_summary.json").write_text(
         json.dumps(fused.summary, indent=2, default=str) + "\n"

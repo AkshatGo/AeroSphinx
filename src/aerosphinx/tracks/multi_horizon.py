@@ -76,10 +76,14 @@ class HorizonForecast:
             "actual": self.actual,
             "predicted": self.predicted,
             "baseline": self.baseline,
-            "absolute_error": abs(self.predicted - self.actual)
-            if np.isfinite(self.actual) else np.nan,
-            "baseline_absolute_error": abs(self.baseline - self.actual)
-            if np.isfinite(self.actual) else np.nan,
+            "absolute_error": (
+                abs(self.predicted - self.actual)
+                if np.isfinite(self.actual)
+                else np.nan
+            ),
+            "baseline_absolute_error": (
+                abs(self.baseline - self.actual) if np.isfinite(self.actual) else np.nan
+            ),
         }
 
 
@@ -326,13 +330,13 @@ def run_multi_horizon(
     baseline:
         The reference model for paired comparisons.
     """
-    from aerosphinx.evaluation.metrics import evaluate
-    from aerosphinx.evaluation.splits import rolling_origin_folds
     from aerosphinx.evaluation.block_inference import (
         apply_correction,
         moving_block_bootstrap_ci,
         year_blocked_bootstrap_ci,
     )
+    from aerosphinx.evaluation.metrics import evaluate
+    from aerosphinx.evaluation.splits import rolling_origin_folds
 
     data = frame.copy()
     data[date_column] = pd.to_datetime(data[date_column])
@@ -346,9 +350,16 @@ def run_multi_horizon(
     # guaranteed to match the horizon semantics.
     if features is None:
         features = [
-            "PM25_Lag_1", "PM25_Lag_2", "PM25_Lag_3", "PM25_Lag_7",
-            "PM25_Roll3", "PM25_Roll7",
-            "day_sin", "day_cos", "month_sin", "month_cos",
+            "PM25_Lag_1",
+            "PM25_Lag_2",
+            "PM25_Lag_3",
+            "PM25_Lag_7",
+            "PM25_Roll3",
+            "PM25_Roll7",
+            "day_sin",
+            "day_cos",
+            "month_sin",
+            "month_cos",
         ]
     models = list(models or ["ridge", "random_forest", "xgboost"])
 
@@ -382,9 +393,7 @@ def run_multi_horizon(
         # the frame truncated at the issue date, so no observation after
         # the issue date can enter them.
         issue_frame = data[data[date_column] <= issue_date].copy()
-        issue_rows = _make_features(
-            issue_frame, date_column, target
-        )
+        issue_rows = _make_features(issue_frame, date_column, target)
         issue_rows = issue_rows[issue_rows[date_column] == issue_date]
         if issue_rows.empty:
             continue
@@ -392,9 +401,7 @@ def run_multi_horizon(
         # Training rows for the one-day-ahead target, used by the recursive
         # method. The direct method uses a horizon-specific model instead.
         one_day_train = _horizon_target(data, 1, target, date_column)
-        one_day_train = one_day_train[
-            one_day_train[date_column] <= issue_date
-        ].copy()
+        one_day_train = one_day_train[one_day_train[date_column] <= issue_date].copy()
         one_day_train = one_day_train[
             one_day_train["_target_date"] <= issue_date
         ].copy()
@@ -409,15 +416,14 @@ def run_multi_horizon(
             # training on a future target would leak the answer.
             shifted = _horizon_target(data, horizon, target, date_column)
             shifted = shifted[shifted[date_column] <= issue_date].copy()
-            shifted = shifted[
-                shifted["_target_date"] <= issue_date
-            ].copy()
+            shifted = shifted[shifted["_target_date"] <= issue_date].copy()
             shifted = _make_features(shifted, date_column, target)
 
             target_date = issue_date + pd.Timedelta(days=horizon)
             actual = (
                 data.loc[data[date_column] == target_date, target].iloc[0]
-                if (data[date_column] == target_date).any() else np.nan
+                if (data[date_column] == target_date).any()
+                else np.nan
             )
             if not np.isfinite(actual):
                 continue
@@ -428,7 +434,9 @@ def run_multi_horizon(
             # persistence value would flatter the learned models.
             baseline_frame = data[data[date_column] <= target_date].copy()
             baseline_preds = persistence_forecast(
-                baseline_frame, value_column=target, date_column=date_column,
+                baseline_frame,
+                value_column=target,
+                date_column=date_column,
                 periods=horizon,
             )
             target_positions = np.flatnonzero(
@@ -436,20 +444,31 @@ def run_multi_horizon(
             )
             baseline_at_target = (
                 float(baseline_preds[target_positions[0]])
-                if target_positions.size else np.nan
+                if target_positions.size
+                else np.nan
             )
 
             for method in methods:
                 for model_name in models:
                     if method == "direct":
                         predicted = direct_forecast(
-                            shifted, issue_rows, horizon, features, model_name,
-                            target=target, date_column=date_column,
+                            shifted,
+                            issue_rows,
+                            horizon,
+                            features,
+                            model_name,
+                            target=target,
+                            date_column=date_column,
                         )[0]
                     else:
                         predicted = recursive_forecast(
-                            one_day_train, issue_rows, horizon, features, model_name,
-                            target=target, date_column=date_column,
+                            one_day_train,
+                            issue_rows,
+                            horizon,
+                            features,
+                            model_name,
+                            target=target,
+                            date_column=date_column,
                         )[0]
 
                     rows.append(
@@ -513,12 +532,22 @@ def run_multi_horizon(
         baseline_values = usable["baseline"].to_numpy()
 
         block = moving_block_bootstrap_ci(
-            y, predicted, baseline_values, dates=usable["Date"].to_numpy(),
-            n_samples=bootstrap_samples, alpha=alpha, seed=seed,
+            y,
+            predicted,
+            baseline_values,
+            dates=usable["Date"].to_numpy(),
+            n_samples=bootstrap_samples,
+            alpha=alpha,
+            seed=seed,
         )
         year_block = year_blocked_bootstrap_ci(
-            y, predicted, baseline_values, dates=usable["Date"].to_numpy(),
-            n_samples=bootstrap_samples, alpha=alpha, seed=seed,
+            y,
+            predicted,
+            baseline_values,
+            dates=usable["Date"].to_numpy(),
+            n_samples=bootstrap_samples,
+            alpha=alpha,
+            seed=seed,
         )
         comparison_rows.append(
             {
@@ -586,7 +615,10 @@ def run_multi_horizon(
     # Confound-free baseline: persistence evaluated at every lag on the
     # identical set of target dates the backtest used.
     lag_reference = persistence_error_by_lag(
-        data, forecasts["Date"].unique(), horizons=horizons, target=target,
+        data,
+        forecasts["Date"].unique(),
+        horizons=horizons,
+        target=target,
         date_column=date_column,
     )
 
@@ -600,9 +632,7 @@ def run_multi_horizon(
     )
 
 
-def _within_issue_comparison(
-    forecasts: pd.DataFrame, baseline: str
-) -> pd.DataFrame:
+def _within_issue_comparison(forecasts: pd.DataFrame, baseline: str) -> pd.DataFrame:
     """Compare each horizon to horizon 1 within the same issue date.
 
     Because each horizon predicts a different target date, a raw
@@ -648,7 +678,5 @@ def _within_issue_comparison(
     table["baseline_vs_h1"] = (
         table["baseline_abs_error"] - table["baseline_abs_error_h1"]
     )
-    table["model_minus_baseline"] = (
-        table["abs_error"] - table["baseline_abs_error"]
-    )
+    table["model_minus_baseline"] = table["abs_error"] - table["baseline_abs_error"]
     return table

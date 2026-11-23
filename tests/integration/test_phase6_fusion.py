@@ -122,9 +122,9 @@ def test_no_environmental_value_without_a_same_day_observation(fusion):
     fused = fusion["fused"].frame
     for source in SOURCE_GROUPS:
         unobserved = fused[~fused[f"{source}_observed"]]
-        assert unobserved[list(value_columns(source))].isna().all().all(), (
-            f"{source} carries a value on an unobserved row"
-        )
+        assert (
+            unobserved[list(value_columns(source))].isna().all().all()
+        ), f"{source} carries a value on an unobserved row"
 
 
 def test_no_source_value_is_forward_filled(fusion):

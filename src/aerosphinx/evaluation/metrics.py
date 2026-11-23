@@ -77,9 +77,13 @@ def regression_metrics(y_true, y_pred) -> dict[str, float]:
 
     if y_true.size == 0:
         return {
-            "n": 0, "MAE": float("nan"), "RMSE": float("nan"),
-            "R2": float("nan"), "Mean_Bias": float("nan"),
-            "Observed_SD": float("nan"), "Observed_Mean": float("nan"),
+            "n": 0,
+            "MAE": float("nan"),
+            "RMSE": float("nan"),
+            "R2": float("nan"),
+            "Mean_Bias": float("nan"),
+            "Observed_SD": float("nan"),
+            "Observed_Mean": float("nan"),
         }
 
     error = y_pred - y_true
@@ -127,9 +131,7 @@ def aqi_metrics(y_true, y_pred) -> dict[str, float]:
         false_positive = int(np.sum((true_labels != label) & (pred_labels == label)))
         false_negative = int(np.sum((true_labels == label) & (pred_labels != label)))
         denominator = 2 * true_positive + false_positive + false_negative
-        f1_scores.append(
-            0.0 if denominator == 0 else 2 * true_positive / denominator
-        )
+        f1_scores.append(0.0 if denominator == 0 else 2 * true_positive / denominator)
 
     matrix = []
     for true_label in AQI_LABELS:

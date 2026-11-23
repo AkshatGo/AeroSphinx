@@ -29,7 +29,10 @@ from aerosphinx.evaluation.sufficiency import (  # noqa: E402
     season_source_sufficiency,
     summarise_sufficiency,
 )
-from aerosphinx.quality.provenance import build_provenance, write_provenance  # noqa: E402
+from aerosphinx.quality.provenance import (  # noqa: E402
+    build_provenance,
+    write_provenance,
+)
 
 
 def main() -> int:
@@ -83,8 +86,11 @@ def main() -> int:
     provenance = build_provenance(
         run_id=run_id,
         root=root,
-        inputs={"fused_dataset": str(input_csv.relative_to(root))}
-        if input_csv.is_relative_to(root) else {"fused_dataset": str(input_csv)},
+        inputs=(
+            {"fused_dataset": str(input_csv.relative_to(root))}
+            if input_csv.is_relative_to(root)
+            else {"fused_dataset": str(input_csv)}
+        ),
         dataset={
             "rows": int(len(frame)),
             "seasons": sorted(table["season"].unique().tolist()),
@@ -95,8 +101,11 @@ def main() -> int:
             "criteria": criteria.as_dict(),
         },
         outputs={
-            "run_dir": str(out_dir.relative_to(root))
-            if out_dir.is_relative_to(root) else str(out_dir),
+            "run_dir": (
+                str(out_dir.relative_to(root))
+                if out_dir.is_relative_to(root)
+                else str(out_dir)
+            ),
             "files": sorted(path.name for path in out_dir.glob("*")),
         },
     )

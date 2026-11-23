@@ -165,16 +165,16 @@ def season_source_sufficiency(
                 "source": source,
                 "n_season_rows": n_season,
                 "n_observed": n_observed,
-                "observed_fraction": (
-                    n_observed / n_season if n_season else 0.0
-                ),
+                "observed_fraction": (n_observed / n_season if n_season else 0.0),
                 "first_observed": (
                     observed_dates.min().date().isoformat()
-                    if not observed_dates.empty else None
+                    if not observed_dates.empty
+                    else None
                 ),
                 "last_observed": (
                     observed_dates.max().date().isoformat()
-                    if not observed_dates.empty else None
+                    if not observed_dates.empty
+                    else None
                 ),
                 "status": status,
                 "reason": reason,
@@ -206,8 +206,7 @@ def summarise_sufficiency(
         }
 
     counts = {
-        status: int(table["status"].eq(status).sum())
-        for status in SUFFICIENCY_STATUSES
+        status: int(table["status"].eq(status).sum()) for status in SUFFICIENCY_STATUSES
     }
     by_season: dict[str, dict] = {}
     for season, group in table.groupby("season", sort=False):

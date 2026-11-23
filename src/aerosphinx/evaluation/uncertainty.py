@@ -78,9 +78,13 @@ def paired_wilcoxon(
 
     if errors_a.size == 0:
         return {
-            "statistic": float("nan"), "pvalue": float("nan"), "n_pairs": 0,
-            "mean_error_a": float("nan"), "mean_error_b": float("nan"),
-            "delta": float("nan"), "significant": False,
+            "statistic": float("nan"),
+            "pvalue": float("nan"),
+            "n_pairs": 0,
+            "mean_error_a": float("nan"),
+            "mean_error_b": float("nan"),
+            "delta": float("nan"),
+            "significant": False,
         }
 
     delta = float(errors_a.mean() - errors_b.mean())
@@ -89,10 +93,13 @@ def paired_wilcoxon(
         # Every difference is zero; the test is undefined but the models are
         # indistinguishable on these observations.
         return {
-            "statistic": 0.0, "pvalue": 1.0, "n_pairs": int(errors_a.size),
+            "statistic": 0.0,
+            "pvalue": 1.0,
+            "n_pairs": int(errors_a.size),
             "mean_error_a": float(errors_a.mean()),
             "mean_error_b": float(errors_b.mean()),
-            "delta": 0.0, "significant": False,
+            "delta": 0.0,
+            "significant": False,
         }
 
     try:
@@ -144,8 +151,12 @@ def paired_bootstrap_ci(
 
     if errors_a.size == 0:
         return {
-            "delta": float("nan"), "ci_low": float("nan"), "ci_high": float("nan"),
-            "n_pairs": 0, "p_a_better": float("nan"), "significant": False,
+            "delta": float("nan"),
+            "ci_low": float("nan"),
+            "ci_high": float("nan"),
+            "n_pairs": 0,
+            "p_a_better": float("nan"),
+            "significant": False,
             "n_samples": n_samples,
         }
 

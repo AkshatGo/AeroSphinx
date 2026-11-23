@@ -72,8 +72,17 @@ def git_state(root: Path) -> dict:
 def _package_versions() -> dict:
     versions = {}
     for name in (
-        "numpy", "pandas", "scikit-learn", "xgboost", "joblib",
-        "matplotlib", "h5py", "xarray", "netCDF4", "scipy", "PyYAML",
+        "numpy",
+        "pandas",
+        "scikit-learn",
+        "xgboost",
+        "joblib",
+        "matplotlib",
+        "h5py",
+        "xarray",
+        "netCDF4",
+        "scipy",
+        "PyYAML",
     ):
         try:
             from importlib.metadata import version

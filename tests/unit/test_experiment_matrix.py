@@ -41,8 +41,12 @@ def synthetic_frame() -> pd.DataFrame:
     frame["aod_valid_pixels"] = 10
     frame["aod_overpasses"] = 1
     for column in (
-        "T2M_midday", "TS_midday", "QV2M_midday",
-        "U10M_midday", "V10M_midday", "SLP_midday",
+        "T2M_midday",
+        "TS_midday",
+        "QV2M_midday",
+        "U10M_midday",
+        "V10M_midday",
+        "SLP_midday",
     ):
         frame[column] = rng.normal(300, 5, n)
     frame["aod_observed"] = True
@@ -172,6 +176,10 @@ def test_ablation_delta_is_config_minus_reference(synthetic_frame):
         pytest.skip("no paired ablation produced")
     row = result.ablations.iloc[0]
     assert set(result.ablations.columns) >= {
-        "track", "config", "reference", "delta_MAE", "n"
+        "track",
+        "config",
+        "reference",
+        "delta_MAE",
+        "n",
     }
     assert row["n"] > 0

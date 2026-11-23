@@ -37,7 +37,10 @@ from aerosphinx.evaluation.block_inference import (  # noqa: E402
 )
 from aerosphinx.evaluation.metrics import evaluate  # noqa: E402
 from aerosphinx.evaluation.splits import rolling_origin_folds  # noqa: E402
-from aerosphinx.quality.provenance import build_provenance, write_provenance  # noqa: E402
+from aerosphinx.quality.provenance import (  # noqa: E402
+    build_provenance,
+    write_provenance,
+)
 from aerosphinx.tracks.cold_start import (  # noqa: E402
     error_vs_out_of_range_fraction,
     extrapolation_conditioned_error,
@@ -104,16 +107,17 @@ def main() -> int:
     train_max = pd.Series(train_max)
 
     model_columns = [
-        c for c in predictions.columns
+        c
+        for c in predictions.columns
         if c not in ("Date", "Fold", "Target", "seasonal_lookback")
     ]
 
-    summary = summarise_cold_start(
-        predictions, model_columns, train_min, train_max
+    summary = summarise_cold_start(predictions, model_columns, train_min, train_max)
+    print(
+        f"[2/4] cold start: {summary.n_extrapolating_folds} of {summary.n_folds} "
+        f"folds extrapolate; {summary.n_observations_out_of_range} observations "
+        f"({summary.fraction_out_of_range:.2%}) fall outside the training range"
     )
-    print(f"[2/4] cold start: {summary.n_extrapolating_folds} of {summary.n_folds} "
-          f"folds extrapolate; {summary.n_observations_out_of_range} observations "
-          f"({summary.fraction_out_of_range:.2%}) fall outside the training range")
 
     conditioned = extrapolation_conditioned_error(
         predictions, model_columns, train_min, train_max
@@ -124,8 +128,16 @@ def main() -> int:
 
     print("\n      error conditional on extrapolation:")
     display = conditioned[
-        ["model", "n", "n_out_of_range", "mae_in_range", "mae_out_of_range",
-         "mae_ratio", "bias_in_range", "bias_out_of_range"]
+        [
+            "model",
+            "n",
+            "n_out_of_range",
+            "mae_in_range",
+            "mae_out_of_range",
+            "mae_ratio",
+            "bias_in_range",
+            "bias_out_of_range",
+        ]
     ]
     print(display.to_string(index=False))
 
@@ -149,9 +161,7 @@ def main() -> int:
             "persistence_fallback": persistence_fallback(
                 fixed, model_name, train_min=train_min, train_max=train_max
             ),
-            "regime_aware_fallback": regime_aware_fallback(
-                fixed, model_name
-            ),
+            "regime_aware_fallback": regime_aware_fallback(fixed, model_name),
         }
         for variant, values in variants.items():
             usable = fixed.copy()
@@ -159,20 +169,26 @@ def main() -> int:
             usable = usable.dropna(subset=["_variant", "Target"])
             if usable.empty:
                 continue
-            scores = evaluate(usable["Target"].to_numpy(), usable["_variant"].to_numpy())
+            scores = evaluate(
+                usable["Target"].to_numpy(), usable["_variant"].to_numpy()
+            )
             block = moving_block_bootstrap_ci(
-                usable["Target"].to_numpy(), usable["_variant"].to_numpy(),
+                usable["Target"].to_numpy(),
+                usable["_variant"].to_numpy(),
                 usable["persistence"].to_numpy(),
                 dates=usable["Date"].to_numpy(),
                 n_samples=evaluation["bootstrap_samples"],
-                alpha=evaluation["alpha"], seed=common["random_seed"],
+                alpha=evaluation["alpha"],
+                seed=common["random_seed"],
             )
             year_block = year_blocked_bootstrap_ci(
-                usable["Target"].to_numpy(), usable["_variant"].to_numpy(),
+                usable["Target"].to_numpy(),
+                usable["_variant"].to_numpy(),
                 usable["persistence"].to_numpy(),
                 dates=usable["Date"].to_numpy(),
                 n_samples=evaluation["bootstrap_samples"],
-                alpha=evaluation["alpha"], seed=common["random_seed"],
+                alpha=evaluation["alpha"],
+                seed=common["random_seed"],
             )
             # How often did this mitigation actually fire?
             if variant == "none":
@@ -181,9 +197,7 @@ def main() -> int:
                 lower = usable["Fold"].map(train_min).to_numpy(dtype=float)
                 upper = usable["Fold"].map(train_max).to_numpy(dtype=float)
                 original = usable[model_name].to_numpy(dtype=float)
-                n_fired = int(
-                    np.sum(~((original >= lower) & (original <= upper)))
-                )
+                n_fired = int(np.sum(~((original >= lower) & (original <= upper))))
             else:
                 months = usable["Date"].dt.month.to_numpy()
                 from aerosphinx.tracks.cold_start import _season_of
@@ -223,16 +237,28 @@ def main() -> int:
     if not mitigations.empty:
         print(
             mitigations[
-                ["model", "mitigation", "n", "n_mitigation_fired", "mae", "bias",
-                 "delta_vs_persistence", "block_ci_low", "block_ci_high",
-                 "block_significant"]
-            ].round(3).to_string(index=False)
+                [
+                    "model",
+                    "mitigation",
+                    "n",
+                    "n_mitigation_fired",
+                    "mae",
+                    "bias",
+                    "delta_vs_persistence",
+                    "block_ci_low",
+                    "block_ci_high",
+                    "block_significant",
+                ]
+            ]
+            .round(3)
+            .to_string(index=False)
         )
 
-    run_id = args.run_id or f"B-coldstart-{datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')}"
-    out_dir = args.out_dir or (
-        root / common["paths"]["results_dir"] / "runs" / run_id
+    run_id = (
+        args.run_id
+        or f"B-coldstart-{datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')}"
     )
+    out_dir = args.out_dir or (root / common["paths"]["results_dir"] / "runs" / run_id)
     out_dir.mkdir(parents=True, exist_ok=True)
 
     conditioned.to_csv(out_dir / "extrapolation_conditioned.csv", index=False)
@@ -258,7 +284,11 @@ def main() -> int:
         rules={
             "evaluation": evaluation,
             "workstream": "B - cold-start and extrapolation diagnostics",
-            "mitigations_tested": ["none", "persistence_fallback", "regime_aware_fallback"],
+            "mitigations_tested": [
+                "none",
+                "persistence_fallback",
+                "regime_aware_fallback",
+            ],
             "clipping_excluded": True,
         },
         outputs={

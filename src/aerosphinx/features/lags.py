@@ -101,7 +101,9 @@ def calendar_lag(
 
     dates = _require_date_index(frame, date_column)
     values = pd.to_numeric(frame[value_column], errors="coerce")
-    series = pd.Series(values.to_numpy(), index=pd.DatetimeIndex(dates), name=value_column)
+    series = pd.Series(
+        values.to_numpy(), index=pd.DatetimeIndex(dates), name=value_column
+    )
 
     # Reindex onto the full calendar spanned by the data so that a missing
     # date becomes an explicit NaN row rather than being skipped by a
@@ -126,8 +128,12 @@ def calendar_lags(
     date_column: str = "Date",
 ) -> pd.DataFrame:
     """Compute several calendar-aware lags at once."""
-    data = {spec.name: calendar_lag(frame, value_column, spec.periods, spec.name, date_column)
-            for spec in specs}
+    data = {
+        spec.name: calendar_lag(
+            frame, value_column, spec.periods, spec.name, date_column
+        )
+        for spec in specs
+    }
     return pd.DataFrame(data, index=frame.index)
 
 

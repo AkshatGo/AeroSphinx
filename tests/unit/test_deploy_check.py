@@ -29,7 +29,9 @@ def test_short_sha_matches():
 
 
 def test_different_commit_fails():
-    matches, message = verdict(LOCAL, {"repo": {"sha": "f080d8fe0fbc4994990022b41d3d865644defa3b"}})
+    matches, message = verdict(
+        LOCAL, {"repo": {"sha": "f080d8fe0fbc4994990022b41d3d865644defa3b"}}
+    )
     assert matches is False
     assert "f080d8f" in message
 

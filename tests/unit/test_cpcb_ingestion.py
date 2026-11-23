@@ -66,9 +66,7 @@ def test_daily_mean_is_hour_weighted_across_files(cpcb_factory, tmp_path, rules)
     hourly-weighted mean is 25; the mean-of-file-means would be 55.
     """
     cpcb_factory("a.csv", [(f"2024-01-01 {h:02d}:00:00", 10.0) for h in range(20)])
-    cpcb_factory(
-        "b.csv", [(f"2024-01-01 {h:02d}:00:00", 100.0) for h in range(20, 24)]
-    )
+    cpcb_factory("b.csv", [(f"2024-01-01 {h:02d}:00:00", 100.0) for h in range(20, 24)])
 
     directory = tmp_path / "cpcb"
     result = load_cpcb_daily(directory, rules)
@@ -206,8 +204,8 @@ def test_day_counts_reconcile_against_calendar_span(cpcb_factory, tmp_path, rule
     cpcb_factory(
         "a.csv",
         [(f"2024-01-01 {h:02d}:00:00", 50.0) for h in range(24)]
-        + [(f"2024-01-02 {h:02d}:00:00", 900.0) for h in range(24)]   # all rejected
-        + [(f"2024-01-03 {h:02d}:00:00", 60.0) for h in range(10)],    # too few hours
+        + [(f"2024-01-02 {h:02d}:00:00", 900.0) for h in range(24)]  # all rejected
+        + [(f"2024-01-03 {h:02d}:00:00", 60.0) for h in range(10)],  # too few hours
     )
 
     result = load_cpcb_daily(tmp_path / "cpcb", rules)

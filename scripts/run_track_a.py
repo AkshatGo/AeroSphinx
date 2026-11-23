@@ -33,7 +33,10 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
 from aerosphinx.evaluation.metrics import evaluate  # noqa: E402
-from aerosphinx.quality.provenance import build_provenance, write_provenance  # noqa: E402
+from aerosphinx.quality.provenance import (  # noqa: E402
+    build_provenance,
+    write_provenance,
+)
 from aerosphinx.tracks.track_a import DEFAULT_FEATURES, run_track_a  # noqa: E402
 
 
@@ -41,10 +44,15 @@ def _season(dates: pd.Series) -> pd.Series:
     month = dates.dt.month
     return pd.Series(
         [
-            "winter" if m in (12, 1, 2)
-            else "pre_monsoon" if m in (3, 4, 5)
-            else "monsoon" if m in (6, 7, 8, 9)
-            else "post_monsoon"
+            (
+                "winter"
+                if m in (12, 1, 2)
+                else (
+                    "pre_monsoon"
+                    if m in (3, 4, 5)
+                    else "monsoon" if m in (6, 7, 8, 9) else "post_monsoon"
+                )
+            )
             for m in month
         ],
         index=dates.index,
@@ -84,9 +92,7 @@ def main() -> int:
     test_block_days = args.test_block_days or evaluation["test_block_days"]
     step_days = args.step_days or evaluation["step_days"]
     lookback_years = args.lookback_years or 3
-    bootstrap_samples = (
-        args.bootstrap_samples or evaluation["bootstrap_samples"]
-    )
+    bootstrap_samples = args.bootstrap_samples or evaluation["bootstrap_samples"]
 
     run_id = f"A-roll{run_id_suffix()}"
     print(f"[1/4] running Track A rolling-origin backtest ({run_id})")
@@ -95,7 +101,11 @@ def main() -> int:
         features=DEFAULT_FEATURES,
         models=args.models,
         min_train_days=min_train_days,
-        validation_days=evaluation["min_validation_days"] if evaluation["min_validation_days"] else 0,
+        validation_days=(
+            evaluation["min_validation_days"]
+            if evaluation["min_validation_days"]
+            else 0
+        ),
         test_block_days=test_block_days,
         step_days=step_days,
         baseline=args.baseline,
@@ -106,9 +116,11 @@ def main() -> int:
     )
 
     metadata = result.metadata
-    print(f"      folds: {metadata['n_folds']}   "
-          f"rows evaluated: {metadata['n_rows_evaluated']:,} of "
-          f"{metadata['n_rows_total']:,}")
+    print(
+        f"      folds: {metadata['n_folds']}   "
+        f"rows evaluated: {metadata['n_rows_evaluated']:,} of "
+        f"{metadata['n_rows_total']:,}"
+    )
 
     print("[2/4] aggregate metrics")
     display = result.aggregate[
@@ -118,8 +130,15 @@ def main() -> int:
 
     print(f"[3/4] paired comparisons against {args.baseline}")
     comparison_display = result.comparisons[
-        ["model", "delta_mae", "wilcoxon_pvalue", "bootstrap_ci_low",
-         "bootstrap_ci_high", "significant", "verdict"]
+        [
+            "model",
+            "delta_mae",
+            "wilcoxon_pvalue",
+            "bootstrap_ci_low",
+            "bootstrap_ci_high",
+            "significant",
+            "verdict",
+        ]
     ]
     print(comparison_display.to_string(index=False))
 
@@ -127,22 +146,28 @@ def main() -> int:
     # block lies outside the training target range.
     if not result.cold_start.empty:
         extrapolating = result.cold_start[result.cold_start["extrapolating"]]
-        print(f"\n      regime coverage: {len(extrapolating)} of {len(result.cold_start)} "
-              f"folds require extrapolating outside the training target range")
+        print(
+            f"\n      regime coverage: {len(extrapolating)} of {len(result.cold_start)} "
+            f"folds require extrapolating outside the training target range"
+        )
         if not extrapolating.empty:
             delta_columns = [
-                c for c in extrapolating.columns
-                if c.startswith("random_forest") or c.startswith("xgboost")
+                c
+                for c in extrapolating.columns
+                if c.startswith("random_forest")
+                or c.startswith("xgboost")
                 or c.startswith("ridge")
             ]
             for column in delta_columns:
                 if column.endswith(f"_minus_{args.baseline}"):
-                    inside = result.cold_start[
-                        ~result.cold_start["extrapolating"]
-                    ][column].mean()
+                    inside = result.cold_start[~result.cold_start["extrapolating"]][
+                        column
+                    ].mean()
                     outside = extrapolating[column].mean()
-                    print(f"      {column:38s} extrapolating {outside:+7.2f} "
-                          f"vs in-range {inside:+7.2f}")
+                    print(
+                        f"      {column:38s} extrapolating {outside:+7.2f} "
+                        f"vs in-range {inside:+7.2f}"
+                    )
 
     out_dir = args.out_dir or (root / common["paths"]["results_dir"] / "runs" / run_id)
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -161,15 +186,24 @@ def main() -> int:
         result.block_inference.to_csv(out_dir / "block_inference.csv", index=False)
         print("\n      block-aware inference (moving-block and year-blocked):")
         block_display = result.block_inference[
-            ["model", "delta_mae", "block_length_days", "block_ci_low",
-             "block_ci_high", "year_ci_low", "year_ci_high",
-             "p_holm", "folds_a_better"]
+            [
+                "model",
+                "delta_mae",
+                "block_length_days",
+                "block_ci_low",
+                "block_ci_high",
+                "year_ci_low",
+                "year_ci_high",
+                "p_holm",
+                "folds_a_better",
+            ]
         ]
         print(block_display.to_string(index=False))
 
     # Seasonal and per-year breakdowns on the complete evaluation rows.
     model_columns = [
-        c for c in result.predictions.columns
+        c
+        for c in result.predictions.columns
         if c not in ("Date", "Fold", "Target", "seasonal_lookback")
     ]
     complete = result.predictions.dropna(subset=model_columns + ["Target"])

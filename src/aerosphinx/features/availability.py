@@ -127,9 +127,7 @@ def _prepare_source(
     required = (date, *_all_columns(source))
     missing = [column for column in required if column not in frame.columns]
     if missing:
-        raise KeyError(
-            f"source {source!r} is missing required columns: {missing}"
-        )
+        raise KeyError(f"source {source!r} is missing required columns: {missing}")
 
     selected = frame[list(required)].copy()
     selected[date] = _normalise_dates(selected[date])
@@ -208,9 +206,7 @@ def build_fused_dataset(
         source_dates_outside_calendar[source] = int(
             (~prepared[date].isin(set(frame[date]))).sum()
         )
-        frame = frame.merge(
-            prepared, on=date, how="left", validate="many_to_one"
-        )
+        frame = frame.merge(prepared, on=date, how="left", validate="many_to_one")
 
     # AOD support counts are metadata: zero support for an absent
     # observation. They are not a measurement and are never imputed.
@@ -220,7 +216,9 @@ def build_fused_dataset(
     # --- availability mask -------------------------------------------------
     for source in SOURCE_GROUPS:
         columns = value_columns(source)
-        has_value = frame[list(columns)].notna().sum(axis=1) >= rules.min_observed_values
+        has_value = (
+            frame[list(columns)].notna().sum(axis=1) >= rules.min_observed_values
+        )
         if source == "aod":
             # A present AOD value is only real when a valid pixel supports it.
             has_value = has_value & (frame["aod_valid_pixels"].to_numpy() > 0)
@@ -229,9 +227,7 @@ def build_fused_dataset(
     # --- observation age (diagnostic, never a substitute value) ------------
     for source in SOURCE_GROUPS:
         observed_dates = (
-            frame.loc[frame[f"{source}_observed"], date]
-            .drop_duplicates()
-            .sort_values()
+            frame.loc[frame[f"{source}_observed"], date].drop_duplicates().sort_values()
         )
         age_column = f"{source}_observation_age_days"
         if observed_dates.empty:
@@ -239,7 +235,10 @@ def build_fused_dataset(
             continue
 
         lookup = pd.DataFrame(
-            {date: observed_dates.to_numpy(), "_observed_date": observed_dates.to_numpy()}
+            {
+                date: observed_dates.to_numpy(),
+                "_observed_date": observed_dates.to_numpy(),
+            }
         )
         matched = pd.merge_asof(
             frame[[date]].sort_values(date),
@@ -248,26 +247,20 @@ def build_fused_dataset(
             direction="backward",
             allow_exact_matches=True,
         )
-        frame[age_column] = (
-            (frame[date] - matched["_observed_date"]).dt.days.to_numpy(dtype=float)
+        frame[age_column] = (frame[date] - matched["_observed_date"]).dt.days.to_numpy(
+            dtype=float
         )
 
     # --- combined availability --------------------------------------------
     if requested:
         mask_columns = [f"{source}_observed" for source in requested]
-        frame["n_sources_observed"] = (
-            frame[mask_columns].sum(axis=1).astype(int)
-        )
-        frame["all_sources_observed"] = (
-            frame["n_sources_observed"] == len(requested)
-        )
+        frame["n_sources_observed"] = frame[mask_columns].sum(axis=1).astype(int)
+        frame["all_sources_observed"] = frame["n_sources_observed"] == len(requested)
     else:
         frame["n_sources_observed"] = 0
         frame["all_sources_observed"] = False
 
-    summary = _summary(
-        frame, base, requested, source_dates_outside_calendar, rules
-    )
+    summary = _summary(frame, base, requested, source_dates_outside_calendar, rules)
     return FusedDataset(
         frame=frame,
         summary=summary,
@@ -301,8 +294,7 @@ def _target_missingness(frame: pd.DataFrame, mask: pd.Series, target: str) -> di
     }
     if observed.size and unobserved.size:
         detail["target_mean_difference"] = (
-            detail["target_mean_when_observed"]
-            - detail["target_mean_when_unobserved"]
+            detail["target_mean_when_observed"] - detail["target_mean_when_unobserved"]
         )
     else:
         detail["target_mean_difference"] = float("nan")
@@ -372,23 +364,24 @@ def _summary(
     any_source = frame["n_sources_observed"] > 0
     return {
         "rows": int(rows),
-        "date_range": [
-            frame[date].min().date().isoformat(),
-            frame[date].max().date().isoformat(),
-        ] if rows else [None, None],
+        "date_range": (
+            [
+                frame[date].min().date().isoformat(),
+                frame[date].max().date().isoformat(),
+            ]
+            if rows
+            else [None, None]
+        ),
         "requested_sources": list(requested),
         "missing_value_policy": MISSING_VALUE_POLICY,
         "per_source": per_source,
         "rows_with_all_sources_observed": int(complete.sum()),
-        "fraction_with_all_sources_observed": (
-            float(complete.mean()) if rows else 0.0
-        ),
+        "fraction_with_all_sources_observed": (float(complete.mean()) if rows else 0.0),
         "rows_with_any_source_observed": int(any_source.sum()),
         "rows_with_no_source_observed": int((~any_source).sum()),
         "ground_rows": int(len(base)),
         "ground_calendar_preserved": bool(
-            len(base) == rows
-            and set(base[date]) == set(frame[date])
+            len(base) == rows and set(base[date]) == set(frame[date])
         ),
     }
 
@@ -531,10 +524,7 @@ def validate_fused_dataset(
     _check(
         checks,
         "aod:value_requires_a_valid_pixel",
-        not bool(
-            (frame["AOD"].notna().to_numpy()
-             & (pixels < 1)).any()
-        ),
+        not bool((frame["AOD"].notna().to_numpy() & (pixels < 1)).any()),
         "every AOD value is supported by at least one valid pixel",
     )
 
@@ -560,8 +550,11 @@ def validate_fused_dataset(
                 # no row for the date, and must match exactly where it does.
                 has_row = ~np.isnan(right)
                 same = np.isclose(
-                    left[has_row], right[has_row],
-                    rtol=0.0, atol=1e-9, equal_nan=True,
+                    left[has_row],
+                    right[has_row],
+                    rtol=0.0,
+                    atol=1e-9,
+                    equal_nan=True,
                 )
                 zero_where_absent = bool((left[~has_row] == 0).all())
                 passed = bool(same.all()) and zero_where_absent
@@ -571,9 +564,7 @@ def validate_fused_dataset(
                     "non-zero support"
                 )
             else:
-                same = np.isclose(
-                    left, right, rtol=0.0, atol=1e-9, equal_nan=True
-                )
+                same = np.isclose(left, right, rtol=0.0, atol=1e-9, equal_nan=True)
                 passed = bool(same.all())
                 detail = (
                     f"{int((~same).sum())} rows differ from the source "

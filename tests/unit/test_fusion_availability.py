@@ -215,9 +215,7 @@ def test_invalid_fusion_rules_raise():
 
 def test_a_clean_fusion_passes_every_alignment_check(ground, merra_frame):
     result = build_fused_dataset(ground, merra=merra_frame)
-    validation = validate_fused_dataset(
-        result, daily=ground, merra=merra_frame
-    )
+    validation = validate_fused_dataset(result, daily=ground, merra=merra_frame)
     assert validation["passed"], validation["failed_checks"]
     assert validation["n_failed"] == 0
     assert_fusion_alignment(validation)
@@ -237,9 +235,7 @@ def test_alignment_gate_rejects_a_forward_filled_value(ground, merra_frame):
         rules=result.rules,
         requested_sources=result.requested_sources,
     )
-    validation = validate_fused_dataset(
-        dataset, daily=ground, merra=merra_frame
-    )
+    validation = validate_fused_dataset(dataset, daily=ground, merra=merra_frame)
     assert not validation["passed"]
     assert "merra:value_without_observation_flag" in validation["failed_checks"]
     with pytest.raises(ValueError, match="Phase 6 alignment gate"):

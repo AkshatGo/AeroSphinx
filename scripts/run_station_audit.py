@@ -29,7 +29,10 @@ import yaml
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
-from aerosphinx.quality.provenance import build_provenance, write_provenance  # noqa: E402
+from aerosphinx.quality.provenance import (  # noqa: E402
+    build_provenance,
+    write_provenance,
+)
 from aerosphinx.quality.station_audit import audit_station_columns  # noqa: E402
 
 
@@ -48,28 +51,33 @@ def main() -> int:
     station = common["project"]["station"]["name"]
 
     print(f"[1/3] auditing station-local columns in {cpcb_dir}")
-    records = audit_station_columns(
-        cpcb_dir, station_name=station, merra_dir=merra_dir
-    )
+    records = audit_station_columns(cpcb_dir, station_name=station, merra_dir=merra_dir)
     print(f"      {len(records)} candidate variables audited")
 
     table = pd.DataFrame([record.as_dict() for record in records])
     display_columns = [
-        "variable", "source_column", "unit", "station_or_source",
-        "missing_percentage", "quality_flag", "forecast_usable",
+        "variable",
+        "source_column",
+        "unit",
+        "station_or_source",
+        "missing_percentage",
+        "quality_flag",
+        "forecast_usable",
     ]
     print("\n[2/3] audit summary:")
     print(table[display_columns].to_string(index=False))
 
-    run_id = args.run_id or f"D-station-{datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')}"
-    out_dir = args.out_dir or (
-        root / common["paths"]["results_dir"] / "runs" / run_id
+    run_id = (
+        args.run_id
+        or f"D-station-{datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')}"
     )
+    out_dir = args.out_dir or (root / common["paths"]["results_dir"] / "runs" / run_id)
     out_dir.mkdir(parents=True, exist_ok=True)
 
     table.to_csv(out_dir / "station_variable_audit.csv", index=False)
     (out_dir / "station_variable_audit.json").write_text(
-        json.dumps([record.as_dict() for record in records], indent=2, default=str) + "\n"
+        json.dumps([record.as_dict() for record in records], indent=2, default=str)
+        + "\n"
     )
 
     usable = [r.variable for r in records if r.forecast_usable]
@@ -85,17 +93,23 @@ def main() -> int:
             "n_forecast_usable": len(usable),
             "forecast_usable_variables": usable,
             "variables_blocked_by_unknown_availability": [
-                r.variable for r in records
-                if r.availability_timestamp == "UNKNOWN"
+                r.variable for r in records if r.availability_timestamp == "UNKNOWN"
             ],
         },
         rules={
             "workstream": "D - CPCB station-local meteorology audit",
             "audit_fields": [
-                "variable", "source_column", "physical_meaning", "unit",
-                "station_or_source", "measurement_timestamp",
-                "availability_timestamp", "missing_percentage",
-                "valid_range", "quality_flag", "forecast_usable",
+                "variable",
+                "source_column",
+                "physical_meaning",
+                "unit",
+                "station_or_source",
+                "measurement_timestamp",
+                "availability_timestamp",
+                "missing_percentage",
+                "valid_range",
+                "quality_flag",
+                "forecast_usable",
             ],
         },
         outputs={

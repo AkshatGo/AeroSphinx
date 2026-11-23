@@ -211,9 +211,7 @@ class Architecture:
             for index, regime in enumerate(regimes):
                 if regime in self._specialists:
                     subset = frame.reset_index(drop=True).iloc[[index]]
-                    predictions[index] = self._specialists[regime].predict(
-                        subset
-                    )[0]
+                    predictions[index] = self._specialists[regime].predict(subset)[0]
         return predictions
 
     # -- reporting ---------------------------------------------------------
@@ -222,11 +220,14 @@ class Architecture:
         """Which specialists were eligible, and on how much data."""
         return {
             "min_specialist_days": self.min_specialist_days,
-            "specialist_training_counts": {
-                regime: int(count) for regime, count in self._specialist_counts.items()
-            }
-            if hasattr(self, "_specialist_counts")
-            else {},
+            "specialist_training_counts": (
+                {
+                    regime: int(count)
+                    for regime, count in self._specialist_counts.items()
+                }
+                if hasattr(self, "_specialist_counts")
+                else {}
+            ),
             "specialist_eligible": dict(self._specialist_eligible),
         }
 

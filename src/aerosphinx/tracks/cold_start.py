@@ -111,9 +111,8 @@ def extrapolation_conditioned_error(
     folds = data[fold_column]
     data["_train_min"] = folds.map(train_min)
     data["_train_max"] = folds.map(train_max)
-    data["_out_of_range"] = (
-        (data[target] < data["_train_min"])
-        | (data[target] > data["_train_max"])
+    data["_out_of_range"] = (data[target] < data["_train_min"]) | (
+        data[target] > data["_train_max"]
     )
 
     rows = []
@@ -127,11 +126,13 @@ def extrapolation_conditioned_error(
 
         mae_inside = (
             float(np.abs(inside[model_name] - inside[target]).mean())
-            if len(inside) else float("nan")
+            if len(inside)
+            else float("nan")
         )
         mae_outside = (
             float(np.abs(outside[model_name] - outside[target]).mean())
-            if len(outside) else float("nan")
+            if len(outside)
+            else float("nan")
         )
         rows.append(
             {
@@ -148,11 +149,13 @@ def extrapolation_conditioned_error(
                 ),
                 "bias_in_range": (
                     float((inside[model_name] - inside[target]).mean())
-                    if len(inside) else float("nan")
+                    if len(inside)
+                    else float("nan")
                 ),
                 "bias_out_of_range": (
                     float((outside[model_name] - outside[target]).mean())
-                    if len(outside) else float("nan")
+                    if len(outside)
+                    else float("nan")
                 ),
             }
         )
@@ -179,9 +182,8 @@ def error_vs_out_of_range_fraction(
     folds = data[fold_column]
     data["_train_min"] = folds.map(train_min)
     data["_train_max"] = folds.map(train_max)
-    data["_out_of_range"] = (
-        (data[target] < data["_train_min"])
-        | (data[target] > data["_train_max"])
+    data["_out_of_range"] = (data[target] < data["_train_min"]) | (
+        data[target] > data["_train_max"]
     )
 
     fold_fraction = data.groupby(fold_column)["_out_of_range"].mean()
@@ -193,8 +195,10 @@ def error_vs_out_of_range_fraction(
     if distinct >= 2:
         try:
             data["_bin"] = pd.qcut(
-                data["_fold_fraction"], min(n_bins, distinct),
-                labels=False, duplicates="drop",
+                data["_fold_fraction"],
+                min(n_bins, distinct),
+                labels=False,
+                duplicates="drop",
             )
         except ValueError:
             data["_bin"] = 0
@@ -280,8 +284,11 @@ def quantile_fallback(
     if not train_quantiles:
         return np.where(np.isfinite(values), values, fallback)
 
-    months = pd.to_datetime(predictions[target.replace(target, "Date")]).dt.month \
-        if "Date" in predictions.columns else None
+    months = (
+        pd.to_datetime(predictions[target.replace(target, "Date")]).dt.month
+        if "Date" in predictions.columns
+        else None
+    )
     if months is None:
         return np.where(np.isfinite(values), values, fallback)
 
@@ -341,9 +348,8 @@ def summarise_cold_start(
     folds = data[fold_column]
     data["_train_min"] = folds.map(train_min)
     data["_train_max"] = folds.map(train_max)
-    data["_out_of_range"] = (
-        (data[target] < data["_train_min"])
-        | (data[target] > data["_train_max"])
+    data["_out_of_range"] = (data[target] < data["_train_min"]) | (
+        data[target] > data["_train_max"]
     )
 
     fold_fraction = data.groupby(fold_column)["_out_of_range"].mean()
@@ -355,11 +361,13 @@ def summarise_cold_start(
     # The reference is the best baseline: persistence.
     mae_inside = (
         float(np.abs(inside["persistence"] - inside[target]).mean())
-        if "persistence" in inside and len(inside) else float("nan")
+        if "persistence" in inside and len(inside)
+        else float("nan")
     )
     mae_outside = (
         float(np.abs(out_of_range["persistence"] - out_of_range[target]).mean())
-        if "persistence" in out_of_range and len(out_of_range) else float("nan")
+        if "persistence" in out_of_range and len(out_of_range)
+        else float("nan")
     )
 
     return ColdStartSummary(

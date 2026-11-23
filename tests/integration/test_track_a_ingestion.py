@@ -23,9 +23,7 @@ CPCB_DIR = ROOT / "data" / "cpcb"
 
 pytestmark = [
     pytest.mark.integration,
-    pytest.mark.skipif(
-        not CPCB_DIR.exists(), reason="local CPCB data not present"
-    ),
+    pytest.mark.skipif(not CPCB_DIR.exists(), reason="local CPCB data not present"),
 ]
 
 
@@ -94,10 +92,9 @@ def test_daily_means_are_hour_weighted(loaded):
     raw["screened"] = values
 
     expected = raw.groupby("Date")["screened"].mean()
-    actual = (
-        loaded.frame[loaded.frame["Date"].dt.year == 2024]
-        .set_index("Date")["PM25"]
-    )
+    actual = loaded.frame[loaded.frame["Date"].dt.year == 2024].set_index("Date")[
+        "PM25"
+    ]
     common = expected.index.intersection(actual.index)
     difference = (expected[common] - actual[common]).abs()
     assert difference.max() < 1e-9

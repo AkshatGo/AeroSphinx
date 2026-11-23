@@ -40,7 +40,12 @@ def test_folds_are_strictly_chronological():
     """No fold may train on data at or after its own test block."""
     dates = daily_dates(1000)
     for fold in rolling_origin_folds(dates, min_train_days=365, step_days=30):
-        assert fold.train_end < fold.validation_start < fold.validation_end < fold.test_start
+        assert (
+            fold.train_end
+            < fold.validation_start
+            < fold.validation_end
+            < fold.test_start
+        )
         assert fold.test_end > fold.test_start
 
 
@@ -60,8 +65,16 @@ def test_fold_split_returns_disjoint_blocks():
     for fold in rolling_origin_folds(dates, min_train_days=365, step_days=30):
         train, validation, test = fold.split(frame)
         assert not train.empty and not test.empty
-        assert train["Date"].max() < validation["Date"].min() if not validation.empty else True
-        assert validation["Date"].max() < test["Date"].min() if not validation.empty else True
+        assert (
+            train["Date"].max() < validation["Date"].min()
+            if not validation.empty
+            else True
+        )
+        assert (
+            validation["Date"].max() < test["Date"].min()
+            if not validation.empty
+            else True
+        )
 
 
 def test_folds_stop_at_the_end_of_the_record():
@@ -84,7 +97,7 @@ def test_no_leakage_assertion_catches_a_bad_fold():
     bad = Fold(
         index=0,
         train_start=good.train_start,
-        train_end=good.test_end,          # deliberately overlaps the test block
+        train_end=good.test_end,  # deliberately overlaps the test block
         validation_start=None,
         validation_end=None,
         test_start=good.test_start,
@@ -129,7 +142,12 @@ def test_aqi_bands_match_the_cpcb_pm25_subindex():
     assert aqi_category([250])[0] == "Severe"
     assert aqi_category([500])[0] == "Severe"
     assert list(AQI_LABELS) == [
-        "Good", "Satisfactory", "Moderate", "Poor", "Very Poor", "Severe"
+        "Good",
+        "Satisfactory",
+        "Moderate",
+        "Poor",
+        "Very Poor",
+        "Severe",
     ]
 
 

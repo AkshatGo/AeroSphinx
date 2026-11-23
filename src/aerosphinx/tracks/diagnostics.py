@@ -50,10 +50,14 @@ def regime_coverage(
 
     if train_values.empty or test_values.empty:
         return {
-            "train_min": float("nan"), "train_max": float("nan"),
-            "test_min": float("nan"), "test_max": float("nan"),
-            "train_p05": float("nan"), "train_p95": float("nan"),
-            "test_p05": float("nan"), "test_p95": float("nan"),
+            "train_min": float("nan"),
+            "train_max": float("nan"),
+            "test_min": float("nan"),
+            "test_max": float("nan"),
+            "train_p05": float("nan"),
+            "train_p95": float("nan"),
+            "test_p05": float("nan"),
+            "test_p95": float("nan"),
             "test_below_train_min": float("nan"),
             "test_above_train_max": float("nan"),
             "extrapolating": False,

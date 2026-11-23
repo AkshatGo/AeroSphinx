@@ -40,7 +40,10 @@ from aerosphinx.ingestion.aod import (  # noqa: E402
     orientation_check,
     window_sensitivity,
 )
-from aerosphinx.quality.provenance import build_provenance, write_provenance  # noqa: E402
+from aerosphinx.quality.provenance import (  # noqa: E402
+    build_provenance,
+    write_provenance,
+)
 
 
 def main() -> int:
@@ -67,42 +70,54 @@ def main() -> int:
 
     print(f"[1/4] validating INSAT-3D granules in {aod_dir}")
     result = load_aod_daily(
-        aod_dir, rules,
-        station_lat=station["latitude"], station_lon=station["longitude"],
+        aod_dir,
+        rules,
+        station_lat=station["latitude"],
+        station_lon=station["longitude"],
     )
     audit = result.audit.as_dict()
     print(f"      {audit['n_granules']} granules, {audit['distinct_dates']} dates")
     print(f"      shapes: {audit['shapes']}")
     print(f"      dimension-scale bindings: {audit['dimension_scale_bindings']}")
     print(f"      fill values: {audit['fill_values']}")
-    print(f"      duplicate (date, overpass) keys: {audit['n_duplicate_date_overpass_keys']}")
-    print(f"      granules with zero valid pixels: {audit['granules_with_zero_valid_pixels']}")
+    print(
+        f"      duplicate (date, overpass) keys: {audit['n_duplicate_date_overpass_keys']}"
+    )
+    print(
+        f"      granules with zero valid pixels: {audit['granules_with_zero_valid_pixels']}"
+    )
     print(f"      QA dataset present: {audit['has_qa_dataset']}")
 
     print("\n[2/4] physical orientation cross-check")
     orientation = orientation_check(
         aod_dir,
-        station_lat=station["latitude"], station_lon=station["longitude"],
+        station_lat=station["latitude"],
+        station_lon=station["longitude"],
     )
     for hypothesis, detail in orientation["hypotheses"].items():
-        print(f"      {hypothesis:16s} ocean {detail['ocean_mean']:.4f}  "
-              f"land {detail['land_mean']:.4f}  contrast {detail['ocean_land_contrast']:+.4f}  "
-              f"plausible {detail['physically_plausible']}")
-    print(f"      dimension-scale orientation corroborated: "
-          f"{orientation['dimension_scale_orientation_corroborated']}")
+        print(
+            f"      {hypothesis:16s} ocean {detail['ocean_mean']:.4f}  "
+            f"land {detail['land_mean']:.4f}  contrast {detail['ocean_land_contrast']:+.4f}  "
+            f"plausible {detail['physically_plausible']}"
+        )
+    print(
+        f"      dimension-scale orientation corroborated: "
+        f"{orientation['dimension_scale_orientation_corroborated']}"
+    )
 
     print("\n[3/4] collocation-window sensitivity")
     sensitivity = window_sensitivity(
         aod_dir,
         rules=rules,
-        station_lat=station["latitude"], station_lon=station["longitude"],
+        station_lat=station["latitude"],
+        station_lon=station["longitude"],
     )
     print(sensitivity.round(4).to_string(index=False))
 
-    run_id = args.run_id or f"D-aod-{datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')}"
-    out_dir = args.out_dir or (
-        root / common["paths"]["results_dir"] / "runs" / run_id
+    run_id = (
+        args.run_id or f"D-aod-{datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')}"
     )
+    out_dir = args.out_dir or (root / common["paths"]["results_dir"] / "runs" / run_id)
     out_dir.mkdir(parents=True, exist_ok=True)
 
     (out_dir / "aod_structural_audit.json").write_text(
@@ -114,9 +129,7 @@ def main() -> int:
     result.frame.to_csv(out_dir / "aod_daily.csv", index=False)
 
     coverage = result.frame.copy()
-    coverage["coverage_fraction_of_window"] = (
-        coverage["aod_valid_pixels"] / 25.0
-    )
+    coverage["coverage_fraction_of_window"] = coverage["aod_valid_pixels"] / 25.0
     coverage.to_csv(out_dir / "aod_coverage.csv", index=False)
     sensitivity.to_csv(out_dir / "aod_window_sensitivity.csv", index=False)
 

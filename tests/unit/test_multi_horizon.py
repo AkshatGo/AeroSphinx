@@ -31,9 +31,7 @@ def daily_frame() -> pd.DataFrame:
     values[0] = 80.0
     for t in range(1, n):
         # Mean-reverting AR(1) around a weekly cycle.
-        values[t] = (
-            0.85 * values[t - 1] + 8 * np.sin(t * 2 * np.pi / 7) + noise[t]
-        )
+        values[t] = 0.85 * values[t - 1] + 8 * np.sin(t * 2 * np.pi / 7) + noise[t]
     values = np.clip(values, 1.0, None)
     return pd.DataFrame({"Date": dates, "PM25": values})
 
@@ -51,15 +49,18 @@ def test_forecasts_never_use_a_future_observation(daily_frame):
     issue date may enter the model.
     """
     result = run_multi_horizon(
-        daily_frame, models=["ridge"], horizons=(1, 2, 3),
-        min_train_days=365, test_block_days=60, step_days=120,
+        daily_frame,
+        models=["ridge"],
+        horizons=(1, 2, 3),
+        min_train_days=365,
+        test_block_days=60,
+        step_days=120,
         bootstrap_samples=100,
     )
     forecasts = result.forecasts
     assert (forecasts["Date"] > forecasts["issue_date"]).all()
     assert (
-        (forecasts["Date"] - forecasts["issue_date"]).dt.days
-        == forecasts["horizon"]
+        (forecasts["Date"] - forecasts["issue_date"]).dt.days == forecasts["horizon"]
     ).all()
     # The issue date is the last day of the fold's test block, so it must
     # be within the record.
@@ -73,8 +74,12 @@ def test_direct_and_recursive_agree_at_horizon_one(daily_frame):
     the same answer as the direct model.
     """
     result = run_multi_horizon(
-        daily_frame, models=["ridge"], horizons=(1,),
-        min_train_days=365, test_block_days=60, step_days=120,
+        daily_frame,
+        models=["ridge"],
+        horizons=(1,),
+        min_train_days=365,
+        test_block_days=60,
+        step_days=120,
         bootstrap_samples=100,
     )
     forecasts = result.forecasts
@@ -90,8 +95,12 @@ def test_recursive_diverges_from_direct_at_longer_horizons(daily_frame):
     the recursion would not be happening.
     """
     result = run_multi_horizon(
-        daily_frame, models=["ridge"], horizons=(3,),
-        min_train_days=365, test_block_days=60, step_days=120,
+        daily_frame,
+        models=["ridge"],
+        horizons=(3,),
+        min_train_days=365,
+        test_block_days=60,
+        step_days=120,
         bootstrap_samples=100,
     )
     forecasts = result.forecasts
@@ -112,8 +121,12 @@ def test_baseline_is_horizon_appropriate(daily_frame):
     the learned models.
     """
     result = run_multi_horizon(
-        daily_frame, models=["ridge"], horizons=(1, 3),
-        min_train_days=365, test_block_days=60, step_days=120,
+        daily_frame,
+        models=["ridge"],
+        horizons=(1, 3),
+        min_train_days=365,
+        test_block_days=60,
+        step_days=120,
         bootstrap_samples=100,
     )
     forecasts = result.forecasts
@@ -152,8 +165,12 @@ def test_persistence_error_by_lag_uses_identical_targets(daily_frame):
 def test_every_horizon_is_reported(daily_frame):
     """All requested horizons must appear in the results."""
     result = run_multi_horizon(
-        daily_frame, models=["ridge"], horizons=(1, 2, 3),
-        min_train_days=365, test_block_days=60, step_days=120,
+        daily_frame,
+        models=["ridge"],
+        horizons=(1, 2, 3),
+        min_train_days=365,
+        test_block_days=60,
+        step_days=120,
         bootstrap_samples=100,
     )
     assert set(result.metrics["horizon"]) == {1, 2, 3}
@@ -163,20 +180,34 @@ def test_every_horizon_is_reported(daily_frame):
 def test_comparisons_carry_uncertainty(daily_frame):
     """Every comparison must carry a block-aware interval."""
     result = run_multi_horizon(
-        daily_frame, models=["ridge"], horizons=(1, 2),
-        min_train_days=365, test_block_days=60, step_days=120,
+        daily_frame,
+        models=["ridge"],
+        horizons=(1, 2),
+        min_train_days=365,
+        test_block_days=60,
+        step_days=120,
         bootstrap_samples=100,
     )
-    for column in ("block_ci_low", "block_ci_high", "block_significant",
-                   "year_ci_low", "year_ci_high", "p_holm"):
+    for column in (
+        "block_ci_low",
+        "block_ci_high",
+        "block_significant",
+        "year_ci_low",
+        "year_ci_high",
+        "p_holm",
+    ):
         assert column in result.comparisons.columns
 
 
 def test_within_issue_comparison_is_produced(daily_frame):
     """The within-issue comparison must be available."""
     result = run_multi_horizon(
-        daily_frame, models=["ridge"], horizons=(1, 2),
-        min_train_days=365, test_block_days=60, step_days=120,
+        daily_frame,
+        models=["ridge"],
+        horizons=(1, 2),
+        min_train_days=365,
+        test_block_days=60,
+        step_days=120,
         bootstrap_samples=100,
     )
     assert not result.within_issue.empty
@@ -187,6 +218,8 @@ def test_missing_target_column_is_rejected(daily_frame):
     """A frame without the target column must fail loudly."""
     with pytest.raises(KeyError):
         run_multi_horizon(
-            daily_frame.drop(columns=["PM25"]), models=["ridge"],
-            horizons=(1,), bootstrap_samples=10,
+            daily_frame.drop(columns=["PM25"]),
+            models=["ridge"],
+            horizons=(1,),
+            bootstrap_samples=10,
         )

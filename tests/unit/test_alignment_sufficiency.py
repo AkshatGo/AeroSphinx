@@ -126,7 +126,9 @@ def test_string_boolean_flags_are_parsed(synthetic_frame):
 
 
 def test_status_thresholds_are_exact():
-    criteria = SufficiencyCriteria(min_rows_for_inference=30, min_rows_for_sufficient=90)
+    criteria = SufficiencyCriteria(
+        min_rows_for_inference=30, min_rows_for_sufficient=90
+    )
     assert classify_sufficiency(0, 100, criteria)[0] == "NOT_EVALUABLE"
     assert classify_sufficiency(10, 100, criteria)[0] == "INSUFFICIENT"
     assert classify_sufficiency(30, 100, criteria)[0] == "WARNING"
@@ -143,9 +145,7 @@ def test_criteria_reject_an_inverted_threshold():
 def test_sufficiency_table_covers_every_season_and_source(synthetic_frame):
     table = season_source_sufficiency(synthetic_frame)
     assert len(table) == 4 * 3
-    assert set(table["season"]) == {
-        "winter", "pre_monsoon", "monsoon", "post_monsoon"
-    }
+    assert set(table["season"]) == {"winter", "pre_monsoon", "monsoon", "post_monsoon"}
     assert set(table["status"]).issubset(set(SUFFICIENCY_STATUSES))
 
 

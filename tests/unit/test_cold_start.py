@@ -35,12 +35,48 @@ def cold_start_frame() -> pd.DataFrame:
         {
             "Date": dates,
             "Fold": 0,
-            "Target": [50.0, 60.0, 70.0, 80.0, 90.0, 100.0,
-                       110.0, 120.0, 130.0, 140.0, 10.0, 20.0],
-            "persistence": [50.0, 60.0, 70.0, 80.0, 90.0, 100.0,
-                            110.0, 120.0, 130.0, 140.0, 10.0, 20.0],
-            "ridge": [55.0, 65.0, 75.0, 85.0, 95.0, 105.0,
-                      115.0, 125.0, 135.0, 145.0, 90.0, 95.0],
+            "Target": [
+                50.0,
+                60.0,
+                70.0,
+                80.0,
+                90.0,
+                100.0,
+                110.0,
+                120.0,
+                130.0,
+                140.0,
+                10.0,
+                20.0,
+            ],
+            "persistence": [
+                50.0,
+                60.0,
+                70.0,
+                80.0,
+                90.0,
+                100.0,
+                110.0,
+                120.0,
+                130.0,
+                140.0,
+                10.0,
+                20.0,
+            ],
+            "ridge": [
+                55.0,
+                65.0,
+                75.0,
+                85.0,
+                95.0,
+                105.0,
+                115.0,
+                125.0,
+                135.0,
+                145.0,
+                90.0,
+                95.0,
+            ],
         }
     )
 
@@ -77,9 +113,7 @@ def test_cold_start_summary_counts_folds_and_observations(cold_start_frame):
     """The summary must report the extrapolating fold and observation counts."""
     train_min = pd.Series({0: 50.0})
     train_max = pd.Series({0: 140.0})
-    summary = summarise_cold_start(
-        cold_start_frame, ["ridge"], train_min, train_max
-    )
+    summary = summarise_cold_start(cold_start_frame, ["ridge"], train_min, train_max)
     assert summary.n_folds == 1
     assert summary.n_extrapolating_folds == 1
     assert summary.n_observations_out_of_range == 2
@@ -117,10 +151,10 @@ def test_persistence_fallback_only_fires_outside_the_training_range():
     result = persistence_fallback(
         frame, "model", train_min=train_min, train_max=train_max
     )
-    assert result[0] == pytest.approx(55.0)   # inside the range -> kept
-    assert result[1] == pytest.approx(65.0)   # inside the range -> kept
-    assert result[2] == pytest.approx(70.0)   # below range -> persistence
-    assert result[3] == pytest.approx(80.0)   # above range -> persistence
+    assert result[0] == pytest.approx(55.0)  # inside the range -> kept
+    assert result[1] == pytest.approx(65.0)  # inside the range -> kept
+    assert result[2] == pytest.approx(70.0)  # below range -> persistence
+    assert result[3] == pytest.approx(80.0)  # above range -> persistence
 
 
 def test_regime_fallback_uses_calendar_only():
@@ -225,12 +259,12 @@ def test_moving_block_interval_is_wider_than_the_naive_one():
     a = y + shared_error + rng.normal(0, 1, n)
     b = y + rng.normal(0, 1, n)
 
-    naive = moving_block_bootstrap_ci(
-        y, a, b, n_samples=2000, block_length=1, seed=5
-    )
+    naive = moving_block_bootstrap_ci(y, a, b, n_samples=2000, block_length=1, seed=5)
     blocked = moving_block_bootstrap_ci(y, a, b, n_samples=2000, seed=5)
     assert blocked["block_length"] > 1
-    assert (blocked["ci_high"] - blocked["ci_low"]) > (naive["ci_high"] - naive["ci_low"])
+    assert (blocked["ci_high"] - blocked["ci_low"]) > (
+        naive["ci_high"] - naive["ci_low"]
+    )
 
 
 def test_block_bootstrap_is_reproducible():

@@ -30,7 +30,10 @@ import yaml
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
-from aerosphinx.quality.provenance import build_provenance, write_provenance  # noqa: E402
+from aerosphinx.quality.provenance import (  # noqa: E402
+    build_provenance,
+    write_provenance,
+)
 from aerosphinx.tracks.multi_horizon import run_multi_horizon  # noqa: E402
 
 
@@ -76,14 +79,30 @@ def main() -> int:
         alpha=evaluation["alpha"],
         seed=common["random_seed"],
     )
-    print(f"      {result.metadata['n_forecasts']:,} forecasts over "
-          f"{result.metadata['n_folds']} folds")
+    print(
+        f"      {result.metadata['n_forecasts']:,} forecasts over "
+        f"{result.metadata['n_folds']} folds"
+    )
 
     print("[2/3] per-horizon skill against the horizon-appropriate baseline")
-    comparison_display = result.comparisons[
-        ["horizon", "method", "model", "n", "mae_model", "mae_baseline",
-         "delta_mae", "block_ci_low", "block_ci_high", "block_significant"]
-    ] if not result.comparisons.empty else pd.DataFrame()
+    comparison_display = (
+        result.comparisons[
+            [
+                "horizon",
+                "method",
+                "model",
+                "n",
+                "mae_model",
+                "mae_baseline",
+                "delta_mae",
+                "block_ci_low",
+                "block_ci_high",
+                "block_significant",
+            ]
+        ]
+        if not result.comparisons.empty
+        else pd.DataFrame()
+    )
     if not comparison_display.empty:
         print(comparison_display.round(3).to_string(index=False))
 
@@ -107,15 +126,19 @@ def main() -> int:
         summary["n_significantly_worse"] = (
             summary["horizon"].map(worse).fillna(0).astype(int)
         )
-        summary = summary.drop(columns=["n_significantly_better_x"]) \
-            if "n_significantly_better_x" in summary.columns else summary
+        summary = (
+            summary.drop(columns=["n_significantly_better_x"])
+            if "n_significantly_better_x" in summary.columns
+            else summary
+        )
         print("\n      skill against persistence by horizon:")
         print(summary.round(3).to_string(index=False))
 
-    run_id = args.run_id or f"A-horizon-{datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')}"
-    out_dir = args.out_dir or (
-        root / common["paths"]["results_dir"] / "runs" / run_id
+    run_id = (
+        args.run_id
+        or f"A-horizon-{datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')}"
     )
+    out_dir = args.out_dir or (root / common["paths"]["results_dir"] / "runs" / run_id)
     out_dir.mkdir(parents=True, exist_ok=True)
 
     result.forecasts.to_csv(out_dir / "forecasts.csv", index=False)

@@ -121,8 +121,16 @@ def dataset_hashes(root: Path) -> dict:
 
 def dependency_versions(root: Path) -> dict:
     packages = [
-        "numpy", "pandas", "scikit-learn", "xgboost", "joblib",
-        "matplotlib", "h5py", "xarray", "netCDF4", "scipy",
+        "numpy",
+        "pandas",
+        "scikit-learn",
+        "xgboost",
+        "joblib",
+        "matplotlib",
+        "h5py",
+        "xarray",
+        "netCDF4",
+        "scipy",
     ]
     versions = {}
     for name in packages:
@@ -142,7 +150,9 @@ def dependency_versions(root: Path) -> dict:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--root", type=Path, default=Path(__file__).resolve().parents[1])
+    parser.add_argument(
+        "--root", type=Path, default=Path(__file__).resolve().parents[1]
+    )
     parser.add_argument("--out", type=Path, default=None)
     args = parser.parse_args()
     root = args.root.resolve()
@@ -185,7 +195,9 @@ def main() -> int:
     print(f"  git HEAD          : {manifest['git']['head_sha']}")
     print(f"  tracked files     : {manifest['git']['tracked_files']}")
     print(f"  worktree entries  : {manifest['git']['working_tree']['total_entries']}")
-    print(f"  inventory files   : {manifest['inventory']['files_excluding_venv_and_git']}")
+    print(
+        f"  inventory files   : {manifest['inventory']['files_excluding_venv_and_git']}"
+    )
     for label, entries in manifest["dataset_hashes"].items():
         print(f"  {label:17s}: {len(entries)} files hashed")
     return 0

@@ -35,7 +35,10 @@ import pandas as pd
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
-from aerosphinx.quality.provenance import build_provenance, write_provenance  # noqa: E402
+from aerosphinx.quality.provenance import (  # noqa: E402
+    build_provenance,
+    write_provenance,
+)
 from aerosphinx.tracks.experiment_matrix import (  # noqa: E402
     MATRIX,
     run_matrix,
@@ -55,8 +58,9 @@ def main() -> int:
     parser.add_argument("--input", type=Path, default=None)
     parser.add_argument("--out-dir", type=Path, default=None)
     parser.add_argument("--run-id", default=None)
-    parser.add_argument("--model", default="ridge",
-                        choices=["ridge", "random_forest", "xgboost"])
+    parser.add_argument(
+        "--model", default="ridge", choices=["ridge", "random_forest", "xgboost"]
+    )
     parser.add_argument("--track-a-min-train", type=int, default=365)
     parser.add_argument("--track-b-min-train", type=int, default=60)
     parser.add_argument("--test-block", type=int, default=30)
@@ -124,8 +128,11 @@ def main() -> int:
     provenance = build_provenance(
         run_id=run_id,
         root=root,
-        inputs={"fused_dataset": str(input_csv.relative_to(root))}
-        if input_csv.is_relative_to(root) else {"fused_dataset": str(input_csv)},
+        inputs=(
+            {"fused_dataset": str(input_csv.relative_to(root))}
+            if input_csv.is_relative_to(root)
+            else {"fused_dataset": str(input_csv)}
+        ),
         dataset={
             "rows": int(len(frame)),
             "track_a_folds": len(track_a.folds),
@@ -149,17 +156,28 @@ def main() -> int:
             ),
         },
         outputs={
-            "run_dir": str(out_dir.relative_to(root))
-            if out_dir.is_relative_to(root) else str(out_dir),
+            "run_dir": (
+                str(out_dir.relative_to(root))
+                if out_dir.is_relative_to(root)
+                else str(out_dir)
+            ),
             "files": sorted(path.name for path in out_dir.glob("*")),
         },
     )
     write_provenance(provenance, out_dir / "manifest.json")
 
     print("\nTrack A metrics")
-    print(track_a.metrics.to_string(index=False) if not track_a.metrics.empty else "  none")
+    print(
+        track_a.metrics.to_string(index=False)
+        if not track_a.metrics.empty
+        else "  none"
+    )
     print("\nTrack B metrics")
-    print(track_b.metrics.to_string(index=False) if not track_b.metrics.empty else "  none")
+    print(
+        track_b.metrics.to_string(index=False)
+        if not track_b.metrics.empty
+        else "  none"
+    )
     print(f"\nwrote {out_dir}/")
     return 0
 

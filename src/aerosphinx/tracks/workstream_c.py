@@ -115,9 +115,7 @@ def build_feature_frame(
         satellite = satellite[
             ["Date", "AOD", "aod_valid_pixels", "aod_overpasses"]
         ].set_index("Date")
-        frame = frame.merge(
-            satellite, on="Date", how="left", suffixes=("", "_aod")
-        )
+        frame = frame.merge(satellite, on="Date", how="left", suffixes=("", "_aod"))
         # A date with no AOD observation has no supporting pixel.
         frame["aod_valid_pixels"] = frame["aod_valid_pixels"].fillna(0)
         frame["aod_overpasses"] = frame["aod_overpasses"].fillna(0)
@@ -134,7 +132,9 @@ def _shifted_target(
     return future.map(lookup)
 
 
-def _issue_frame(frame: pd.DataFrame, issue_date, date_column: str = "Date") -> pd.DataFrame:
+def _issue_frame(
+    frame: pd.DataFrame, issue_date, date_column: str = "Date"
+) -> pd.DataFrame:
     """The rows whose date is the issue date, from a frame truncated there."""
     truncated = frame[frame[date_column] <= issue_date].copy()
     return truncated[truncated[date_column] == issue_date]
@@ -165,7 +165,9 @@ def _fit_predict(
     )
     architecture.fit(working)
 
-    regimes = assign_regime(train[working.index].to_numpy() if False else working["Date"])
+    regimes = assign_regime(
+        train[working.index].to_numpy() if False else working["Date"]
+    )
     counts = {regime: int((regimes == regime).sum()) for regime in set(regimes)}
     architecture.record_specialist_counts(counts)
 
@@ -217,7 +219,11 @@ def run_workstream_c(
     frame: pd.DataFrame,
     group_sets: dict[str, tuple[str, ...]] | None = None,
     architectures: tuple[str, ...] = (
-        "global", "seasonal", "interaction", "routing", "shared"
+        "global",
+        "seasonal",
+        "interaction",
+        "routing",
+        "shared",
     ),
     model_name: str = "ridge",
     horizons: tuple[int, ...] = (1, 2, 3, 4, 5),
@@ -320,10 +326,16 @@ def run_workstream_c(
                 # For the test pass the model may be refitted on the
                 # training and validation blocks, which are both legitimately
                 # in the past at that point.
-                "train": pd.concat([train, validation], ignore_index=True)
-                if not validation.empty else train,
-                "issue_date": validation[date_column].max()
-                if not validation.empty else train[date_column].max(),
+                "train": (
+                    pd.concat([train, validation], ignore_index=True)
+                    if not validation.empty
+                    else train
+                ),
+                "issue_date": (
+                    validation[date_column].max()
+                    if not validation.empty
+                    else train[date_column].max()
+                ),
                 "score_rows": test,
             }
         )
@@ -375,15 +387,18 @@ def run_workstream_c(
                     # The horizon-appropriate persistence baseline.
                     baseline_frame = data[data[date_column] <= target_date].copy()
                     baseline_preds = persistence_forecast(
-                        baseline_frame, value_column=target,
-                        date_column=date_column, periods=horizon,
+                        baseline_frame,
+                        value_column=target,
+                        date_column=date_column,
+                        periods=horizon,
                     )
                     positions = np.flatnonzero(
                         (baseline_frame[date_column] == target_date).to_numpy()
                     )
                     baseline_value = (
                         float(baseline_preds[positions[0]])
-                        if positions.size else np.nan
+                        if positions.size
+                        else np.nan
                     )
 
                     for architecture_kind in architectures:
@@ -395,32 +410,44 @@ def run_workstream_c(
                                     data, 1, target, date_column
                                 )
                                 one_day_eligible = (
-                                    train_block[date_column]
-                                    + pd.Timedelta(days=1) <= issue_date
+                                    train_block[date_column] + pd.Timedelta(days=1)
+                                    <= issue_date
                                 )
                                 one_day_rows = train_block[one_day_eligible].copy()
                                 predicted = _recursive_predict(
                                     one_day_rows,
                                     one_day_future.loc[one_day_rows.index],
-                                    issue_frame, features, model_name, horizon,
-                                    data, issue_date, target, date_column,
+                                    issue_frame,
+                                    features,
+                                    model_name,
+                                    horizon,
+                                    data,
+                                    issue_date,
+                                    target,
+                                    date_column,
                                 )
                             elif method == "direct":
                                 if architecture_kind == "shared":
                                     # One model trained across all horizons,
                                     # with the horizon as a feature.
                                     predicted = _shared_model_predictions(
-                                        model_name, features, train_rows,
-                                        horizons, issue_frame, horizon,
+                                        model_name,
+                                        features,
+                                        train_rows,
+                                        horizons,
+                                        issue_frame,
+                                        horizon,
                                     )
-                                    predicted = float(
-                                        np.asarray(predicted).ravel()[0]
-                                    )
+                                    predicted = float(np.asarray(predicted).ravel()[0])
                                 else:
                                     predicted = _fit_predict(
-                                        architecture_kind, model_name, features,
-                                        min_specialist_days, train_rows,
-                                        train_future, [issue_frame],
+                                        architecture_kind,
+                                        model_name,
+                                        features,
+                                        min_specialist_days,
+                                        train_rows,
+                                        train_future,
+                                        [issue_frame],
                                     )[0]
                                     predicted = float(np.asarray(predicted).ravel()[0])
                             else:
@@ -464,12 +491,8 @@ def run_workstream_c(
         present_any = data[distinctive].notna().any(axis=1)
         availability[label] = set(data.loc[present_any, date_column])
 
-    validation_predictions = all_predictions[
-        all_predictions["split"] == "validation"
-    ]
-    validation_predictions = _restrict_to_coverage(
-        validation_predictions, availability
-    )
+    validation_predictions = all_predictions[all_predictions["split"] == "validation"]
+    validation_predictions = _restrict_to_coverage(validation_predictions, availability)
     validation_scores = _score_predictions(validation_predictions)
     test_scores = _score_predictions(
         all_predictions[all_predictions["split"] == "test"]
@@ -480,14 +503,20 @@ def run_workstream_c(
     # --- feature-group ablation -------------------------------------------
     ablation = _ablation(
         all_predictions[all_predictions["split"] == "test"],
-        bootstrap_samples, alpha, seed, feature_availability=availability,
+        bootstrap_samples,
+        alpha,
+        seed,
+        feature_availability=availability,
     )
 
     # The direct group-versus-group comparison: does the environmental
     # group add value on top of the ground-only model?
     group_pairwise = _group_pairwise(
         all_predictions[all_predictions["split"] == "test"],
-        bootstrap_samples, alpha, seed, feature_availability=availability,
+        bootstrap_samples,
+        alpha,
+        seed,
+        feature_availability=availability,
     )
 
     # The selected architecture's test performance, per horizon. This is
@@ -551,9 +580,7 @@ def _selected_test_performance(
         ].dropna(subset=["predicted", "baseline", "actual"])
         if matched.empty:
             continue
-        scores = evaluate(
-            matched["actual"].to_numpy(), matched["predicted"].to_numpy()
-        )
+        scores = evaluate(matched["actual"].to_numpy(), matched["predicted"].to_numpy())
         baseline_scores = evaluate(
             matched["actual"].to_numpy(), matched["baseline"].to_numpy()
         )
@@ -622,9 +649,7 @@ def _recursive_predict(
             working_row["PM25_Lag_3"] = np.nan
             if "PM25_Roll3" in working_row.index:
                 window = [value for value in (lag1, lag2) if np.isfinite(value)]
-                working_row["PM25_Roll3"] = (
-                    float(np.mean(window)) if window else np.nan
-                )
+                working_row["PM25_Roll3"] = float(np.mean(window)) if window else np.nan
             if "PM25_Roll7" in working_row.index:
                 working_row["PM25_Roll7"] = np.nan
         x = working_row[features].to_frame().T.astype(float)
@@ -668,9 +693,7 @@ def _score_predictions(predictions: pd.DataFrame) -> pd.DataFrame:
         usable = group.dropna(subset=["predicted", "actual"])
         if usable.empty:
             continue
-        scores = evaluate(
-            usable["actual"].to_numpy(), usable["predicted"].to_numpy()
-        )
+        scores = evaluate(usable["actual"].to_numpy(), usable["predicted"].to_numpy())
         rows.append(
             {
                 "group_set": keys[0],
@@ -708,21 +731,18 @@ def _select_architecture(
     ranked["eligible_for_selection"] = ranked["n"] >= min_validation_rows
 
     # Rank eligible candidates ahead of ineligible ones within a horizon.
-    ranked["_sort_key"] = (
-        ~ranked["eligible_for_selection"]
-    ).astype(int) * 1e9 + ranked["MAE"]
+    ranked["_sort_key"] = (~ranked["eligible_for_selection"]).astype(
+        int
+    ) * 1e9 + ranked["MAE"]
     ranked = ranked.sort_values(["horizon", "_sort_key"]).reset_index(drop=True)
-    ranked["validation_rank"] = (
-        ranked.groupby("horizon").cumcount() + 1
-    ).astype(int)
+    ranked["validation_rank"] = (ranked.groupby("horizon").cumcount() + 1).astype(int)
     ranked = ranked.drop(columns=["_sort_key"])
 
     # The selected candidate for each horizon: the best *eligible* one.
     ranked["selected"] = False
     for horizon in ranked["horizon"].unique():
         eligible = ranked[
-            (ranked["horizon"] == horizon)
-            & ranked["eligible_for_selection"]
+            (ranked["horizon"] == horizon) & ranked["eligible_for_selection"]
         ]
         if eligible.empty:
             continue
@@ -807,14 +827,18 @@ def _group_pairwise(
                 cell["predicted"].to_numpy(),
                 cell["_reference_predicted"].to_numpy(),
                 dates=cell["Date"].to_numpy(),
-                n_samples=bootstrap_samples, alpha=alpha, seed=seed,
+                n_samples=bootstrap_samples,
+                alpha=alpha,
+                seed=seed,
             )
             year_block = year_blocked_bootstrap_ci(
                 cell["actual"].to_numpy(),
                 cell["predicted"].to_numpy(),
                 cell["_reference_predicted"].to_numpy(),
                 dates=cell["Date"].to_numpy(),
-                n_samples=bootstrap_samples, alpha=alpha, seed=seed,
+                n_samples=bootstrap_samples,
+                alpha=alpha,
+                seed=seed,
             )
             rows.append(
                 {
@@ -848,9 +872,7 @@ def _group_pairwise(
         table["delta_vs_reference"].abs().to_numpy(), alpha=alpha
     )
     table["p_holm"] = corrections["p_holm"].to_numpy()
-    table["p_benjamini_hochberg"] = corrections[
-        "p_benjamini_hochberg"
-    ].to_numpy()
+    table["p_benjamini_hochberg"] = corrections["p_benjamini_hochberg"].to_numpy()
     table["n_comparisons"] = corrections["n_comparisons"].to_numpy()
     table["group_better"] = table["delta_vs_reference"] < 0
     return table
@@ -923,32 +945,34 @@ def _ablation(
             continue
 
         # The reference and the model must have scored the same target.
-        merged = merged[
-            (merged["actual"] - merged["_reference_actual"]).abs() < 1e-9
-        ]
+        merged = merged[(merged["actual"] - merged["_reference_actual"]).abs() < 1e-9]
         if merged.empty:
             continue
 
         for (architecture, method, horizon), cell in merged.groupby(
             ["architecture", "method", "horizon"]
         ):
-            scores = evaluate(
-                cell["actual"].to_numpy(), cell["predicted"].to_numpy()
-            )
+            scores = evaluate(cell["actual"].to_numpy(), cell["predicted"].to_numpy())
             baseline_scores = evaluate(
                 cell["actual"].to_numpy(), cell["baseline"].to_numpy()
             )
             block = moving_block_bootstrap_ci(
-                cell["actual"].to_numpy(), cell["predicted"].to_numpy(),
+                cell["actual"].to_numpy(),
+                cell["predicted"].to_numpy(),
                 cell["baseline"].to_numpy(),
                 dates=cell["Date"].to_numpy(),
-                n_samples=bootstrap_samples, alpha=alpha, seed=seed,
+                n_samples=bootstrap_samples,
+                alpha=alpha,
+                seed=seed,
             )
             year_block = year_blocked_bootstrap_ci(
-                cell["actual"].to_numpy(), cell["predicted"].to_numpy(),
+                cell["actual"].to_numpy(),
+                cell["predicted"].to_numpy(),
                 cell["baseline"].to_numpy(),
                 dates=cell["Date"].to_numpy(),
-                n_samples=bootstrap_samples, alpha=alpha, seed=seed,
+                n_samples=bootstrap_samples,
+                alpha=alpha,
+                seed=seed,
             )
             rows.append(
                 {
@@ -982,8 +1006,6 @@ def _ablation(
         table["delta_vs_persistence"].abs().to_numpy(), alpha=alpha
     )
     table["p_holm"] = corrections["p_holm"].to_numpy()
-    table["p_benjamini_hochberg"] = corrections[
-        "p_benjamini_hochberg"
-    ].to_numpy()
+    table["p_benjamini_hochberg"] = corrections["p_benjamini_hochberg"].to_numpy()
     table["n_comparisons"] = corrections["n_comparisons"].to_numpy()
     return table

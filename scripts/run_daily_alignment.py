@@ -31,7 +31,10 @@ from aerosphinx.quality.alignment import (  # noqa: E402
     build_alignment_report,
     validate_alignment_report,
 )
-from aerosphinx.quality.provenance import build_provenance, write_provenance  # noqa: E402
+from aerosphinx.quality.provenance import (  # noqa: E402
+    build_provenance,
+    write_provenance,
+)
 
 
 def main() -> int:
@@ -85,8 +88,11 @@ def main() -> int:
     provenance = build_provenance(
         run_id=run_id,
         root=root,
-        inputs={"fused_dataset": str(input_csv.relative_to(root))}
-        if input_csv.is_relative_to(root) else {"fused_dataset": str(input_csv)},
+        inputs=(
+            {"fused_dataset": str(input_csv.relative_to(root))}
+            if input_csv.is_relative_to(root)
+            else {"fused_dataset": str(input_csv)}
+        ),
         dataset={
             "rows": int(len(frame)),
             "date_range": report.report["date_range"],
@@ -109,15 +115,20 @@ def main() -> int:
             ),
         },
         outputs={
-            "run_dir": str(out_dir.relative_to(root))
-            if out_dir.is_relative_to(root) else str(out_dir),
+            "run_dir": (
+                str(out_dir.relative_to(root))
+                if out_dir.is_relative_to(root)
+                else str(out_dir)
+            ),
             "files": sorted(path.name for path in out_dir.glob("*")),
         },
     )
     write_provenance(provenance, out_dir / "daily_dataset_manifest.json")
 
-    print(f"rows: {len(frame)}  range: {report.report['date_range'][0]} -> "
-          f"{report.report['date_range'][1]}")
+    print(
+        f"rows: {len(frame)}  range: {report.report['date_range'][0]} -> "
+        f"{report.report['date_range'][1]}"
+    )
     for record in report.source_coverage.to_dict(orient="records"):
         print(
             f"  {record['source']:12s} observed {record['observed_rows']:4d} "
@@ -129,8 +140,10 @@ def main() -> int:
         f"{report.report['rows_with_all_sources_observed']} rows "
         f"({report.report['fraction_with_all_sources_observed']:.1%})"
     )
-    print(f"validation: {'PASS' if validation['passed'] else 'FAIL'} "
-          f"({validation['n_checks']} checks, {validation['n_failed']} failed)")
+    print(
+        f"validation: {'PASS' if validation['passed'] else 'FAIL'} "
+        f"({validation['n_checks']} checks, {validation['n_failed']} failed)"
+    )
     print(f"wrote {out_dir}/")
     return 0 if validation["passed"] else 1
 

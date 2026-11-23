@@ -43,8 +43,8 @@ def synthetic_granule(tmp_path):
     path = directory / "3DIMG_15APR2024_0530_L2G_AOD_V02R00.h5"
 
     n = 51
-    latitude = np.linspace(30.0, 20.0, n)      # descending
-    longitude = np.linspace(75.0, 85.0, n)      # ascending
+    latitude = np.linspace(30.0, 20.0, n)  # descending
+    longitude = np.linspace(75.0, 85.0, n)  # ascending
     grid = np.full((1, n, n), -999.0, dtype=np.float32)
     # A hot spot at a known position, surrounded by fill.
     grid[0, 10, 20] = 2.5
@@ -104,7 +104,8 @@ def test_extraction_reads_the_correct_axes(synthetic_granule):
     transposed position and find fill instead.
     """
     result = load_aod_daily(
-        synthetic_granule, station_lat=30.0 - 10 * (10.0 / 50.0),
+        synthetic_granule,
+        station_lat=30.0 - 10 * (10.0 / 50.0),
         station_lon=75.0 + 21 * (10.0 / 50.0),
     )
     assert len(result.frame) == 1
@@ -115,7 +116,9 @@ def test_extraction_reads_the_correct_axes(synthetic_granule):
     assert result.frame["aod_valid_pixels"].iloc[0] == 2
 
 
-def test_orientation_check_rejects_a_physically_impossible_orientation(synthetic_granule):
+def test_orientation_check_rejects_a_physically_impossible_orientation(
+    synthetic_granule,
+):
     """The physical cross-check must be able to fail.
 
     Two boxes are chosen with the *same* AOD content under both
@@ -152,7 +155,8 @@ def test_fill_value_is_detected(synthetic_granule):
 def test_fill_value_is_excluded_from_the_mean(synthetic_granule):
     """Fill pixels must never contribute to the extracted mean."""
     result = load_aod_daily(
-        synthetic_granule, station_lat=30.0 - 10 * (10.0 / 50.0),
+        synthetic_granule,
+        station_lat=30.0 - 10 * (10.0 / 50.0),
         station_lon=75.0 + 21 * (10.0 / 50.0),
     )
     # Only the two real pixels are counted, not the surrounding fill.
@@ -192,7 +196,8 @@ def test_window_selects_the_expected_pixel_count(synthetic_granule):
     # of the 0.2-degree grid, plus the hot spot.
     rules = AODRules(window_half_width_deg=0.25)
     result = load_aod_daily(
-        synthetic_granule, rules,
+        synthetic_granule,
+        rules,
         station_lat=30.0 - 10 * (10.0 / 50.0),
         station_lon=75.0 + 21 * (10.0 / 50.0),
     )
@@ -202,12 +207,14 @@ def test_window_selects_the_expected_pixel_count(synthetic_granule):
 def test_window_half_width_changes_the_pixel_count(synthetic_granule):
     """A wider window must select at least as many pixels."""
     small = load_aod_daily(
-        synthetic_granule, AODRules(window_half_width_deg=0.05),
+        synthetic_granule,
+        AODRules(window_half_width_deg=0.05),
         station_lat=30.0 - 10 * (10.0 / 50.0),
         station_lon=75.0 + 21 * (10.0 / 50.0),
     )
     large = load_aod_daily(
-        synthetic_granule, AODRules(window_half_width_deg=1.0),
+        synthetic_granule,
+        AODRules(window_half_width_deg=1.0),
         station_lat=30.0 - 10 * (10.0 / 50.0),
         station_lon=75.0 + 21 * (10.0 / 50.0),
     )
@@ -233,8 +240,11 @@ def test_window_sensitivity_reports_every_candidate(synthetic_granule):
     )
     assert len(table) == 2
     for column in (
-        "window_half_width_deg", "n_days", "mean_AOD",
-        "mean_valid_pixels", "correlation_with_default",
+        "window_half_width_deg",
+        "n_days",
+        "mean_AOD",
+        "mean_valid_pixels",
+        "correlation_with_default",
     ):
         assert column in table.columns
 
@@ -287,12 +297,8 @@ def test_distinct_overpasses_on_one_date_are_not_duplicates(tmp_path):
             "w",
         ) as handle:
             handle.create_dataset("AOD", data=grid)
-            handle.create_dataset(
-                "latitude", data=np.linspace(30.0, 20.0, n)
-            )
-            handle.create_dataset(
-                "longitude", data=np.linspace(75.0, 85.0, n)
-            )
+            handle.create_dataset("latitude", data=np.linspace(30.0, 20.0, n))
+            handle.create_dataset("longitude", data=np.linspace(75.0, 85.0, n))
             handle.create_dataset("time", data=np.array([12754410.0]))
             handle["AOD"].attrs["_FillValue"] = np.array([-999.0], dtype=np.float32)
             handle.attrs["Acquisition_Date"] = b"15APR2024"
@@ -318,19 +324,16 @@ def test_multiple_overpasses_are_averaged_into_one_daily_value(tmp_path):
             directory / f"3DIMG_15APR2024_{overpass}_L2G_AOD_V02R00.h5", "w"
         ) as handle:
             handle.create_dataset("AOD", data=grid)
-            handle.create_dataset(
-                "latitude", data=np.linspace(30.0, 20.0, n)
-            )
-            handle.create_dataset(
-                "longitude", data=np.linspace(75.0, 85.0, n)
-            )
+            handle.create_dataset("latitude", data=np.linspace(30.0, 20.0, n))
+            handle.create_dataset("longitude", data=np.linspace(75.0, 85.0, n))
             handle.create_dataset("time", data=np.array([12754410.0]))
             handle["AOD"].attrs["_FillValue"] = np.array([-999.0], dtype=np.float32)
             handle.attrs["Acquisition_Date"] = b"15APR2024"
             handle.attrs["Acquisition_Time_in_GMT"] = overpass.encode()
 
     result = load_aod_daily(
-        directory, station_lat=30.0 - 10 * (10.0 / 50.0),
+        directory,
+        station_lat=30.0 - 10 * (10.0 / 50.0),
         station_lon=75.0 + 21 * (10.0 / 50.0),
     )
     assert len(result.frame) == 1, "one date must give one daily row"

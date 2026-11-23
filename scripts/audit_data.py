@@ -106,7 +106,9 @@ def audit_cpcb(root: Path) -> dict:
             .resample("D")
             .agg(["mean", "count"])
             .reset_index()
-            .rename(columns={"Timestamp": "Date", "mean": TARGET, "count": "valid_hours"})
+            .rename(
+                columns={"Timestamp": "Date", "mean": TARGET, "count": "valid_hours"}
+            )
         )
         daily_frames.append(daily[["Date", TARGET, "valid_hours"]])
 
@@ -153,7 +155,9 @@ def audit_cpcb(root: Path) -> dict:
         valid_hourly.set_index("Timestamp").sort_index()[TARGET].resample("D").mean()
     )
     mean_of_means = accepted.set_index("Date")[TARGET]
-    compare = pd.DataFrame({"weighted": weighted, "mean_of_means": mean_of_means}).dropna()
+    compare = pd.DataFrame(
+        {"weighted": weighted, "mean_of_means": mean_of_means}
+    ).dropna()
     delta = (compare["weighted"] - compare["mean_of_means"]).abs()
     out["mean_of_means_vs_hour_weighted_mismatch_days"] = int((delta > 1e-9).sum())
     out["mean_of_means_vs_hour_weighted_max_abs_diff"] = float(delta.max())
@@ -230,13 +234,17 @@ def audit_aod(root: Path) -> dict:
             acquisition = attrs.get("Acquisition_Date")
             if isinstance(acquisition, bytes):
                 acquisition = acquisition.decode("utf-8", "ignore")
-            parsed = pd.to_datetime(str(acquisition).strip(), format="%d%b%Y", errors="coerce")
+            parsed = pd.to_datetime(
+                str(acquisition).strip(), format="%d%b%Y", errors="coerce"
+            )
             if pd.notna(parsed):
                 dates.append(parsed.date().isoformat())
 
             time_token = re.search(r"_(\d{4})_", path.name)
             if time_token:
-                overpass_times[time_token.group(1)] = overpass_times.get(time_token.group(1), 0) + 1
+                overpass_times[time_token.group(1)] = (
+                    overpass_times.get(time_token.group(1), 0) + 1
+                )
 
             grid = np.asarray(handle["AOD"][0], dtype=float)
             lats = np.asarray(handle["latitude"][:], dtype=float)
@@ -286,13 +294,19 @@ def audit_aod(root: Path) -> dict:
                 "count": len(valid_pixels),
                 "min": int(np.min(valid_pixels)) if valid_pixels else None,
                 "median": float(np.median(valid_pixels)) if valid_pixels else None,
-                "mean": round(float(np.mean(valid_pixels)), 3) if valid_pixels else None,
+                "mean": (
+                    round(float(np.mean(valid_pixels)), 3) if valid_pixels else None
+                ),
                 "max": int(np.max(valid_pixels)) if valid_pixels else None,
             },
-            "aod_value_range_observed": [
-                round(float(np.min(over_values)), 6),
-                round(float(np.max(over_values)), 6),
-            ] if over_values else None,
+            "aod_value_range_observed": (
+                [
+                    round(float(np.min(over_values)), 6),
+                    round(float(np.max(over_values)), 6),
+                ]
+                if over_values
+                else None
+            ),
             "sample_file_attributes": attrs_of_record,
         }
     )
@@ -343,7 +357,10 @@ def audit_merra(root: Path) -> dict:
                         "standard_name": attrs.get("standard_name"),
                     }
             fallback_hits = {
-                var: fb for var, fbs in MERRA_FALLBACKS.items() for fb in fbs if fb in ds
+                var: fb
+                for var, fbs in MERRA_FALLBACKS.items()
+                for fb in fbs
+                if fb in ds
             }
 
     out.update(
@@ -353,7 +370,9 @@ def audit_merra(root: Path) -> dict:
             "distinct_dates": len(set(dates)),
             "grid_points": [list(g) for g in sorted(grids)],
             "time_signatures_utc": [list(t) for t in sorted(time_signatures)],
-            "timesteps_per_day": len(next(iter(time_signatures))) if time_signatures else None,
+            "timesteps_per_day": (
+                len(next(iter(time_signatures))) if time_signatures else None
+            ),
             "variables_present_in_any_granule": sorted(
                 set(var_units) | {"PBLH"} - {"PBLH"}
             ),
@@ -427,7 +446,9 @@ def audit_alignment(root: Path) -> dict:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--root", type=Path, default=Path(__file__).resolve().parents[1])
+    parser.add_argument(
+        "--root", type=Path, default=Path(__file__).resolve().parents[1]
+    )
     parser.add_argument("--out", type=Path, default=None)
     args = parser.parse_args()
     root = args.root.resolve()

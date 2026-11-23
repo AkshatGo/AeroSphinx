@@ -42,6 +42,4 @@ def cpcb_factory(tmp_path: Path):
 @pytest.fixture
 def hourly_day() -> list[tuple[str, float]]:
     """A complete 24-hour local day of valid PM2.5 readings."""
-    return [
-        (f"2024-01-01 {hour:02d}:00:00", 50.0 + hour) for hour in range(24)
-    ]
+    return [(f"2024-01-01 {hour:02d}:00:00", 50.0 + hour) for hour in range(24)]

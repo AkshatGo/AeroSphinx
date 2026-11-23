@@ -278,7 +278,5 @@ MODEL_REGISTRY = {
 def build_model(name: str, features: list[str], target: str = "PM25", **params):
     """Instantiate a model by name from the registry."""
     if name not in MODEL_REGISTRY:
-        raise KeyError(
-            f"unknown model {name!r}; available: {sorted(MODEL_REGISTRY)}"
-        )
+        raise KeyError(f"unknown model {name!r}; available: {sorted(MODEL_REGISTRY)}")
     return MODEL_REGISTRY[name](features=features, target=target, **params)

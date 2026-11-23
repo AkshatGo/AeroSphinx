@@ -123,8 +123,14 @@ class CPCBAudit:
             "days_excluded_duplicate": self.days_excluded_duplicate,
             "days_excluded_insufficient_hours": self.days_excluded_insufficient_hours,
             "days_excluded_all_missing": self.days_excluded_all_missing,
-            "raw_start": self.raw_start.date().isoformat() if self.raw_start is not None else None,
-            "raw_end": self.raw_end.date().isoformat() if self.raw_end is not None else None,
+            "raw_start": (
+                self.raw_start.date().isoformat()
+                if self.raw_start is not None
+                else None
+            ),
+            "raw_end": (
+                self.raw_end.date().isoformat() if self.raw_end is not None else None
+            ),
             "file_sha256": dict(sorted(self.file_hashes.items())),
         }
 
@@ -366,7 +372,13 @@ def aggregate_daily(
     if hourly.empty:
         return (
             pd.DataFrame(
-                columns=["Date", "PM25", "valid_hours", "expected_hours", "coverage_fraction"]
+                columns=[
+                    "Date",
+                    "PM25",
+                    "valid_hours",
+                    "expected_hours",
+                    "coverage_fraction",
+                ]
             ),
             audit,
         )
@@ -404,12 +416,7 @@ def aggregate_daily(
     calendar = pd.date_range(
         pd.Timestamp(calendar_start), pd.Timestamp(calendar_end), freq="D"
     )
-    daily = (
-        daily.set_index("Date")
-        .reindex(calendar)
-        .rename_axis("Date")
-        .reset_index()
-    )
+    daily = daily.set_index("Date").reindex(calendar).rename_axis("Date").reset_index()
     daily["valid_hours"] = daily["valid_hours"].fillna(0).astype(int)
     daily["n_observations"] = daily["n_observations"].fillna(0).astype(int)
 
@@ -443,9 +450,7 @@ def aggregate_daily(
     daily = daily.sort_values("Date").reset_index(drop=True)
 
     return (
-        daily[
-            ["Date", "PM25", "valid_hours", "expected_hours", "coverage_fraction"]
-        ],
+        daily[["Date", "PM25", "valid_hours", "expected_hours", "coverage_fraction"]],
         audit,
     )
 
@@ -488,7 +493,9 @@ def load_cpcb_daily(
     for key, value in aggregate_audit.rejection_reasons.items():
         audit.reject(key, value)
     audit.days_excluded_duplicate = aggregate_audit.days_excluded_duplicate
-    audit.days_excluded_insufficient_hours = aggregate_audit.days_excluded_insufficient_hours
+    audit.days_excluded_insufficient_hours = (
+        aggregate_audit.days_excluded_insufficient_hours
+    )
     audit.days_excluded_all_missing = aggregate_audit.days_excluded_all_missing
     audit.duplicate_hours = aggregate_audit.duplicate_hours
 

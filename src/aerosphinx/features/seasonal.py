@@ -226,9 +226,7 @@ def validate_season_assignment(
     )
 
     season_year = get_season_year(series, region)
-    expected_year = series.dt.year.where(
-        ~months.isin([1, 2]), series.dt.year - 1
-    )
+    expected_year = series.dt.year.where(~months.isin([1, 2]), series.dt.year - 1)
 
     _check(
         checks,
@@ -310,8 +308,11 @@ def validate_temporal_order(frame: pd.DataFrame, date_column: str = "Date") -> d
         checks,
         "dates_are_monotonic_increasing",
         bool(valid.is_monotonic_increasing),
-        "dates are in ascending order" if valid.is_monotonic_increasing
-        else "dates are not in ascending order",
+        (
+            "dates are in ascending order"
+            if valid.is_monotonic_increasing
+            else "dates are not in ascending order"
+        ),
     )
 
     failed = [entry["check"] for entry in checks if not entry["passed"]]

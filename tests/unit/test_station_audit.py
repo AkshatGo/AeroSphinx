@@ -37,7 +37,9 @@ def synthetic_cpcb(tmp_path):
             "VWS (m/s)": -1.0 + 0.3 * np.sin(hours * 2 * np.pi / 24),
         }
     )
-    rows.to_csv(directory / "City_wise_raw_data_1Hr_2024_Faridabad_1Hr.csv", index=False)
+    rows.to_csv(
+        directory / "City_wise_raw_data_1Hr_2024_Faridabad_1Hr.csv", index=False
+    )
     return directory
 
 
@@ -55,9 +57,17 @@ def test_audit_record_has_every_required_field(synthetic_cpcb):
     """The audit must supply every field the authorization requires."""
     record = audit_station_columns(synthetic_cpcb)[0].as_dict()
     required = {
-        "variable", "source_column", "physical_meaning", "unit",
-        "station_or_source", "measurement_timestamp", "availability_timestamp",
-        "missing_percentage", "valid_range", "quality_flag", "forecast_usable",
+        "variable",
+        "source_column",
+        "physical_meaning",
+        "unit",
+        "station_or_source",
+        "measurement_timestamp",
+        "availability_timestamp",
+        "missing_percentage",
+        "valid_range",
+        "quality_flag",
+        "forecast_usable",
     }
     assert required.issubset(record.keys())
 

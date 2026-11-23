@@ -17,11 +17,7 @@ from aerosphinx.features.groups import FEATURE_GROUPS, AvailabilityClass
 
 pytestmark = pytest.mark.unit
 
-DOC = (
-    Path(__file__).resolve().parents[2]
-    / "docs"
-    / "FEATURE_AVAILABILITY_CONTRACT.md"
-)
+DOC = Path(__file__).resolve().parents[2] / "docs" / "FEATURE_AVAILABILITY_CONTRACT.md"
 
 ROW = re.compile(
     r"^\|\s*`(?P<feature>[^`]+)`\s*"

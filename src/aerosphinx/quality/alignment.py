@@ -98,16 +98,16 @@ def source_coverage(
                 "source": source,
                 "observed_rows": int(observed.sum()),
                 "missing_rows": int((~observed).sum()),
-                "observed_fraction": (
-                    float(observed.mean()) if len(frame) else 0.0
-                ),
+                "observed_fraction": (float(observed.mean()) if len(frame) else 0.0),
                 "first_observed": (
                     observed_dates.min().date().isoformat()
-                    if not observed_dates.empty else None
+                    if not observed_dates.empty
+                    else None
                 ),
                 "last_observed": (
                     observed_dates.max().date().isoformat()
-                    if not observed_dates.empty else None
+                    if not observed_dates.empty
+                    else None
                 ),
                 "observed_years": ",".join(str(year) for year in years),
             }
@@ -197,8 +197,7 @@ def source_overlap(
         "n_sources": len(sources),
         "rows": total,
         "n_sources_distribution": {
-            str(count): int(counts.eq(count).sum())
-            for count in range(len(sources) + 1)
+            str(count): int(counts.eq(count).sum()) for count in range(len(sources) + 1)
         },
         "rows_with_all_sources_observed": int(all_mask.sum()),
         "fraction_with_all_sources_observed": (

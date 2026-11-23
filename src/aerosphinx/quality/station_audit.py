@@ -131,9 +131,7 @@ def _cpcb_timestamp_evidence(frame: pd.DataFrame, column: str) -> dict:
     timestamps = frame["_timestamp"]
     values = pd.to_numeric(frame[column], errors="coerce")
 
-    on_hour = bool(
-        ((timestamps.dt.minute == 0) & (timestamps.dt.second == 0)).all()
-    )
+    on_hour = bool(((timestamps.dt.minute == 0) & (timestamps.dt.second == 0)).all())
 
     # Distinct values per day: ~24 indicates a genuine hourly measurement.
     daily = frame.assign(_day=timestamps.dt.normalize(), _v=values)
@@ -144,7 +142,8 @@ def _cpcb_timestamp_evidence(frame: pd.DataFrame, column: str) -> dict:
     hourly_means = values.groupby(timestamps.dt.hour).mean()
     diurnal_range = (
         float(hourly_means.max() - hourly_means.min())
-        if hourly_means.notna().any() else float("nan")
+        if hourly_means.notna().any()
+        else float("nan")
     )
 
     return {
@@ -258,8 +257,7 @@ def audit_station_columns(
         # Forecast usability requires both station-locality and a known
         # availability time.
         forecast_usable = bool(
-            station_verdict.startswith("station-local")
-            and availability != "UNKNOWN"
+            station_verdict.startswith("station-local") and availability != "UNKNOWN"
         )
 
         if forecast_usable:
@@ -312,7 +310,8 @@ def _load_merra_hourly(merra_dir: Path) -> pd.DataFrame:
             times = pd.to_datetime(dataset["time"].values)
             values = {
                 name: np.asarray(dataset[name].values).ravel()
-                for name in wanted if name in dataset
+                for name in wanted
+                if name in dataset
             }
             for index in range(len(times)):
                 row = {"ts_hour": times[index].floor("h")}
@@ -370,8 +369,11 @@ def _compare_with_merra(
 
     merged = working.merge(merra[["ts_hour", field_name]], on="ts_hour", how="inner")
     if len(merged) < 30:
-        return {"verdict": "UNKNOWN", "applicable": False,
-                "n_matched": int(len(merged))}
+        return {
+            "verdict": "UNKNOWN",
+            "applicable": False,
+            "n_matched": int(len(merged)),
+        }
 
     reference = merged[field_name].astype(float)
     if unit_kind == "C":
@@ -384,7 +386,8 @@ def _compare_with_merra(
     correlation = float(merged["_value"].corr(reference))
 
     verdict = (
-        "reanalysis (identical values)" if identical > 0.9 * len(merged)
+        "reanalysis (identical values)"
+        if identical > 0.9 * len(merged)
         else "station-local measurement"
     )
     return {

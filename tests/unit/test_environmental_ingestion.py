@@ -35,7 +35,9 @@ def synthetic_cpcb(tmp_path):
             "VWS (m/s)": -1.0,
         }
     )
-    rows.to_csv(directory / "City_wise_raw_data_1Hr_2024_Faridabad_1Hr.csv", index=False)
+    rows.to_csv(
+        directory / "City_wise_raw_data_1Hr_2024_Faridabad_1Hr.csv", index=False
+    )
     return directory
 
 
@@ -87,7 +89,7 @@ def test_station_met_screens_implausible_values(tmp_path):
         {
             "Timestamp": dates.strftime("%Y-%m-%d %H:%M:%S"),
             "PM2.5 (µg/m³)": 80.0,
-            "AT (°C)": [-500.0] * len(dates),   # implausible
+            "AT (°C)": [-500.0] * len(dates),  # implausible
             "RH (%)": 50.0,
         }
     )

@@ -84,9 +84,7 @@ def estimate_block_length(
 
     series = pd.Series(values)
     lags = list(range(1, min(max_lag, n // 2) + 1))
-    autocorrelation = np.array(
-        [series.autocorr(lag) for lag in lags], dtype=float
-    )
+    autocorrelation = np.array([series.autocorr(lag) for lag in lags], dtype=float)
     autocorrelation = np.nan_to_num(autocorrelation, nan=0.0)
 
     # Standard error of the sample autocorrelation under independence.
@@ -95,8 +93,7 @@ def estimate_block_length(
     # Bonferroni over the lags examined: a lag counts as correlated only if
     # it exceeds the threshold AND exceeds the noise band.
     noise_band = (
-        standard_error
-        * np.sqrt(2 * np.log(lags[-1] / significance))
+        standard_error * np.sqrt(2 * np.log(lags[-1] / significance))
         if lags
         else standard_error
     )
@@ -181,9 +178,14 @@ def moving_block_bootstrap_ci(
 
     if errors_a.size == 0:
         return {
-            "delta": float("nan"), "ci_low": float("nan"), "ci_high": float("nan"),
-            "block_length": 0, "n_pairs": 0, "p_a_better": float("nan"),
-            "significant": False, "n_samples": n_samples,
+            "delta": float("nan"),
+            "ci_low": float("nan"),
+            "ci_high": float("nan"),
+            "block_length": 0,
+            "n_pairs": 0,
+            "p_a_better": float("nan"),
+            "significant": False,
+            "n_samples": n_samples,
         }
 
     # Order chronologically before blocking.
@@ -245,9 +247,14 @@ def year_blocked_bootstrap_ci(
 
     if errors_a.size == 0:
         return {
-            "delta": float("nan"), "ci_low": float("nan"), "ci_high": float("nan"),
-            "n_pairs": 0, "n_years": 0, "p_a_better": float("nan"),
-            "significant": False, "n_samples": n_samples,
+            "delta": float("nan"),
+            "ci_low": float("nan"),
+            "ci_high": float("nan"),
+            "n_pairs": 0,
+            "n_years": 0,
+            "p_a_better": float("nan"),
+            "significant": False,
+            "n_samples": n_samples,
         }
 
     unique_years = np.unique(years)
@@ -256,9 +263,7 @@ def year_blocked_bootstrap_ci(
             y_true, a, b, n_samples=n_samples, alpha=alpha, seed=seed
         )
 
-    per_year = {
-        int(year): np.flatnonzero(years == year) for year in unique_years
-    }
+    per_year = {int(year): np.flatnonzero(years == year) for year in unique_years}
 
     rng = np.random.default_rng(seed)
     n_years = unique_years.size
@@ -267,7 +272,9 @@ def year_blocked_bootstrap_ci(
     means_a = np.empty(n_samples)
     means_b = np.empty(n_samples)
     for index in range(n_samples):
-        picked = np.concatenate([per_year[int(unique_years[j])] for j in sampled[index]])
+        picked = np.concatenate(
+            [per_year[int(unique_years[j])] for j in sampled[index]]
+        )
         means_a[index] = errors_a[picked].mean()
         means_b[index] = errors_b[picked].mean()
 

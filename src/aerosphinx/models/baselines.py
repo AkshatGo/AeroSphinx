@@ -145,7 +145,7 @@ class ClimatologyBuilder:
 
         all_years = sorted(data[self.date_column].dt.year.unique())
         # Primary window: the most recent ``lookback_years`` years present.
-        primary_years = all_years[-self.lookback_years:] if self.lookback_years else []
+        primary_years = all_years[-self.lookback_years :] if self.lookback_years else []
         self._primary_years = list(primary_years)
 
         primary = data[data[self.date_column].dt.year.isin(primary_years)]
@@ -217,7 +217,9 @@ class ClimatologyBuilder:
             # Nearest available day-of-year within the permitted offset.
             nearest = available[np.abs(available - key) <= self.max_day_offset]
             if nearest.size:
-                predictions[position] = values[int(nearest[np.argmin(np.abs(nearest - key))])]
+                predictions[position] = values[
+                    int(nearest[np.argmin(np.abs(nearest - key))])
+                ]
 
         return predictions
 

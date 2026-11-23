@@ -102,8 +102,12 @@ FEATURE_GROUPS: dict[str, FeatureGroup] = {
     "pm25_history": FeatureGroup(
         name="pm25_history",
         features=(
-            "PM25_Lag_1", "PM25_Lag_2", "PM25_Lag_3", "PM25_Lag_7",
-            "PM25_Roll3", "PM25_Roll7",
+            "PM25_Lag_1",
+            "PM25_Lag_2",
+            "PM25_Lag_3",
+            "PM25_Lag_7",
+            "PM25_Roll3",
+            "PM25_Roll7",
         ),
         availability=AvailabilityClass.OBSERVED_GROUND_HISTORY,
         description=(
@@ -124,7 +128,14 @@ FEATURE_GROUPS: dict[str, FeatureGroup] = {
     "station_met": FeatureGroup(
         name="station_met",
         features=(
-            "AT", "RH", "WS", "WD", "RF", "TOT_RF", "SR", "VWS",
+            "AT",
+            "RH",
+            "WS",
+            "WD",
+            "RF",
+            "TOT_RF",
+            "SR",
+            "VWS",
         ),
         availability=AvailabilityClass.STATION_LOCAL_UNKNOWN_AVAILABILITY,
         description=(
@@ -154,8 +165,12 @@ FEATURE_GROUPS: dict[str, FeatureGroup] = {
     "merra": FeatureGroup(
         name="merra",
         features=(
-            "T2M_midday", "TS_midday", "QV2M_midday",
-            "U10M_midday", "V10M_midday", "SLP_midday",
+            "T2M_midday",
+            "TS_midday",
+            "QV2M_midday",
+            "U10M_midday",
+            "V10M_midday",
+            "SLP_midday",
         ),
         availability=AvailabilityClass.REANALYSIS,
         description=(
@@ -287,8 +302,7 @@ def assert_operational_contract(group_names) -> None:
     operational, retrospective = partition_by_availability(group_names)
     if retrospective:
         details = "; ".join(
-            f"{name} ({get_group(name).availability.value})"
-            for name in retrospective
+            f"{name} ({get_group(name).availability.value})" for name in retrospective
         )
         raise ValueError(
             "operational feature contract violated: the following groups "

@@ -33,7 +33,10 @@ from aerosphinx.quality.merra_validation import (  # noqa: E402
     station_cross_check,
     validate_merra,
 )
-from aerosphinx.quality.provenance import build_provenance, write_provenance  # noqa: E402
+from aerosphinx.quality.provenance import (  # noqa: E402
+    build_provenance,
+    write_provenance,
+)
 
 
 def main() -> int:
@@ -59,32 +62,47 @@ def main() -> int:
     print(f"      missing values: {audit['n_missing_values']}")
     print(f"      grid cells: {audit['grid_cells']}")
     print(f"      time signatures: {audit['time_signatures']}")
-    print(f"      coverage: {audit['date_start']} to {audit['date_end']}  "
-          f"{audit['n_dates']} dates, {audit['n_missing_dates']} missing")
+    print(
+        f"      coverage: {audit['date_start']} to {audit['date_end']}  "
+        f"{audit['n_dates']} dates, {audit['n_missing_dates']} missing"
+    )
     print(f"      local hours at the station (IST): {audit['local_hours_ist']}")
     print(f"      subsetting boxes: {audit['subsetting_boxes']}")
 
     print("\n[2/3] physical cross-check against the CPCB station")
     cross = station_cross_check(
-        merra_dir, cpcb_dir,
-        station_lat=station["latitude"], station_lon=station["longitude"],
+        merra_dir,
+        cpcb_dir,
+        station_lat=station["latitude"],
+        station_lon=station["longitude"],
     )
     print(f"      matched hour pairs: {len(cross)}")
     if not cross.empty:
-        print(f"      T2M vs station AT : corr {cross.T2M_C.corr(cross.station_AT_C):+.4f}  "
-              f"mean diff {(cross.T2M_C - cross.station_AT_C).mean():+.2f} C")
-        print(f"      QV2M vs station q : corr {cross.QV2M.corr(cross.station_q_implied):+.4f}  "
-              f"mean diff {(cross.QV2M - cross.station_q_implied).mean() * 1000:+.3f} g/kg")
-        print(f"      TS  vs T2M        : mean {(cross.TS_C - cross.T2M_C).mean():+.2f} C")
-        print(f"      SLP minus PS      : {cross.SLP_minus_PS_hPa.mean():+.2f} hPa "
-              f"(implied elevation {cross.SLP_minus_PS_hPa.mean() / 0.1263:.0f} m)")
-        print(f"      SLP vs station BP : corr {cross.SLP_Pa.corr(cross.station_BP_hPa):+.4f} "
-              f"<- NEGATIVE is impossible; see docs/PHASE5_REPORT.md section 6")
+        print(
+            f"      T2M vs station AT : corr {cross.T2M_C.corr(cross.station_AT_C):+.4f}  "
+            f"mean diff {(cross.T2M_C - cross.station_AT_C).mean():+.2f} C"
+        )
+        print(
+            f"      QV2M vs station q : corr {cross.QV2M.corr(cross.station_q_implied):+.4f}  "
+            f"mean diff {(cross.QV2M - cross.station_q_implied).mean() * 1000:+.3f} g/kg"
+        )
+        print(
+            f"      TS  vs T2M        : mean {(cross.TS_C - cross.T2M_C).mean():+.2f} C"
+        )
+        print(
+            f"      SLP minus PS      : {cross.SLP_minus_PS_hPa.mean():+.2f} hPa "
+            f"(implied elevation {cross.SLP_minus_PS_hPa.mean() / 0.1263:.0f} m)"
+        )
+        print(
+            f"      SLP vs station BP : corr {cross.SLP_Pa.corr(cross.station_BP_hPa):+.4f} "
+            f"<- NEGATIVE is impossible; see docs/PHASE5_REPORT.md section 6"
+        )
 
-    run_id = args.run_id or f"D-merra-{datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')}"
-    out_dir = args.out_dir or (
-        root / common["paths"]["results_dir"] / "runs" / run_id
+    run_id = (
+        args.run_id
+        or f"D-merra-{datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')}"
     )
+    out_dir = args.out_dir or (root / common["paths"]["results_dir"] / "runs" / run_id)
     out_dir.mkdir(parents=True, exist_ok=True)
 
     (out_dir / "merra_structural_audit.json").write_text(

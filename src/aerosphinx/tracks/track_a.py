@@ -27,13 +27,12 @@ import numpy as np
 import pandas as pd
 
 from aerosphinx.evaluation.metrics import evaluate
-from aerosphinx.evaluation.splits import Fold, rolling_origin_folds
+from aerosphinx.evaluation.splits import rolling_origin_folds
 from aerosphinx.evaluation.uncertainty import compare_models, paired_wilcoxon
 from aerosphinx.features.seasonal import assign_season
 from aerosphinx.models.baselines import (
     PersistenceBaseline,
     SeasonalNaiveBaseline,
-    persistence_forecast,
 )
 from aerosphinx.models.supervised import build_model
 from aerosphinx.tracks.diagnostics import cold_start_report, coverage_by_fold
@@ -311,8 +310,6 @@ def run_track_a(
                 ),
             }
         )
-    comparison_frame = pd.DataFrame(comparison_rows)
-
     comparisons = compare_models(
         complete["Target"].to_numpy(),
         {name: complete[name].to_numpy() for name in model_columns},

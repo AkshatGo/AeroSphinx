@@ -37,8 +37,6 @@ from aerosphinx.evaluation.splits import Fold
 from aerosphinx.features.groups import (
     GROUND_ONLY_GROUPS,
     assemble_features,
-    assert_operational_contract,
-    describe_groups,
     distinctive_features,
 )
 from aerosphinx.models.baselines import persistence_forecast
@@ -266,11 +264,6 @@ def run_workstream_c(
     -------
     WorkstreamCResult
     """
-    from aerosphinx.evaluation.block_inference import (
-        apply_correction,
-        moving_block_bootstrap_ci,
-        year_blocked_bootstrap_ci,
-    )
     from aerosphinx.evaluation.splits import rolling_origin_folds
 
     group_sets = group_sets or {

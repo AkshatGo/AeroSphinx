@@ -45,7 +45,6 @@ from aerosphinx.tracks.cold_start import (  # noqa: E402
     error_vs_out_of_range_fraction,
     extrapolation_conditioned_error,
     persistence_fallback,
-    quantile_fallback,
     regime_aware_fallback,
     summarise_cold_start,
 )

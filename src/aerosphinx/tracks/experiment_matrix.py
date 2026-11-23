@@ -34,7 +34,7 @@ from aerosphinx.evaluation.block_inference import (
     moving_block_bootstrap_ci,
 )
 from aerosphinx.evaluation.metrics import evaluate
-from aerosphinx.evaluation.splits import Fold, rolling_origin_folds
+from aerosphinx.evaluation.splits import rolling_origin_folds
 from aerosphinx.features.groups import assemble_features
 from aerosphinx.features.seasonal import SEASONS, assign_season, season_features
 from aerosphinx.models.supervised import build_model

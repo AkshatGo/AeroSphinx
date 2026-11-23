@@ -206,7 +206,6 @@ def audit_aod(root: Path) -> dict:
     dates = []
     overpass_times: dict[str, int] = {}
     bboxes = set()
-    dim_scales: set[str] = set()
     datasets_seen: set[str] = set()
     valid_pixels: list[int] = []
     granule_valid_pixels: list[int] = []

@@ -30,7 +30,6 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Iterable
 
-import numpy as np
 import pandas as pd
 
 __all__ = [

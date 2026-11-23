@@ -41,6 +41,7 @@ make run-matrix           # run the M0-M8 matrix on identical eligible dates
 make run-sufficiency      # per-season source sufficiency
 make run-alignment        # daily coverage, missingness and alignment report
 make check-deploy         # deployed commit == local HEAD
+make check-claims         # README numbers vs persisted artefacts
 ```
 
 Runtime is roughly two to four minutes on a standard laptop CPU. No GPU and no
@@ -48,13 +49,26 @@ network access are required; all input files are local.
 
 ### Current scientific position
 
-The Phase 2 backtest over the full nine-year CPCB record found that **no
-learned model significantly beats the persistence baseline** at one-day
-horizon: Random Forest matches it (Δ MAE −0.013, p = 0.86), ridge matches it
-(Δ MAE +0.101, p = 0.52), and XGBoost is significantly worse. The learned
-models *do* beat persistence in the pre-monsoon and winter seasons, and a
-tree ensemble's inability to predict outside its training range is a
-documented, quantified cold-start effect.
+Every number below is reproducible from the persisted artefacts:
+`aerosphinx check-claims` re-derives each one from `results/` and fails if the
+prose and the artefacts disagree. `results/CANONICAL.json` is the registry it
+checks against.
+
+The canonical Track A result is the M0–M8 matrix: 97 rolling-origin folds over
+the full nine-year record, with 2,615 matched predictions for every
+configuration. Ridge on ground history plus calendar reaches **21.44 MAE
+against persistence's 22.09**. The 0.65 advantage does not survive the paired
+significance test, so the established statement is that **no learned model
+beats persistence at one day**. The gain is seasonal — it holds in winter,
+pre-monsoon and post-monsoon and reverses in monsoon — and a tree ensemble's
+inability to predict outside its training range is a documented, quantified
+cold-start effect.
+
+That matrix figure is the published Track A comparison. `scripts/run-track-a`
+is a protocol-discovery tool with a narrower eligible set (2,510 predictions,
+because it requires a complete seven-day warm-up) and its ridge delta has the
+opposite sign (+0.34, p = 0.13); it is a diagnostic, not the result. The
+pre-audit Phase 2 numbers are marked superseded in `docs/PHASE2_REPORT.md`.
 
 Phase 6 publishes the fused Track B dataset with an explicit availability
 mask: all 2,979 ground rows are preserved, missing environmental values are
@@ -62,11 +76,15 @@ never filled, and all three sources are observed together on only 139 rows
 (4.7%).
 
 Phase 7 runs the M0–M8 ladder on identical eligible dates within each track.
-Track A's ridge model beats persistence by 0.65 MAE over 2,615 matched
-predictions (21.44 vs 22.09). Track B's environmental groups do not: on the 49
-dates where every configuration predicts, adding AOD costs 0.21 MAE, MERRA-2
-costs 4.24, and full fusion costs 4.70 relative to the ground-only ridge. The
-result is negative, and is reported as such.
+On Track B the ground-only learned model does not even beat persistence
+(28.59 against 22.98) across the 80 fused dates. On the 49 dates where every
+configuration predicts, adding AOD costs 0.21 MAE, MERRA-2 costs 4.24, and
+full fusion costs 4.70 relative to the ground-only ridge. **None of those
+differences is significant** — not on a paired moving-block bootstrap, and not
+after Holm correction across the ablation family (AOD interval [−2.19, +2.61];
+fusion Holm-adjusted p = 0.31). The result is negative and underpowered, and
+is now reported as both: the correct claim is not "fusion costs 4.70 MAE" but
+"no environmental ablation is distinguishable from zero on 49 days".
 
 Full analysis: `docs/PHASE2_REPORT.md` (Track A), `docs/PHASE6_REPORT.md`
 (fusion and availability), `docs/PHASE7_REPORT.md` (matrix, ablations,
@@ -74,13 +92,13 @@ sufficiency), `docs/FEATURE_AVAILABILITY_CONTRACT.md` (per-feature contract).
 
 ### Web application
 
-`api/server.py` serves 12 read-only routes over the persisted artefacts, and
+`api/server.py` serves 13 read-only routes over the persisted artefacts, and
 the Vite frontend in `ui/` renders them in ten modules. Nothing is fabricated:
 an unavailable artefact produces an explicit empty state. The forecast endpoint
 abstains rather than inventing a value.
 
 ```bash
-python api/server.py            # API + built frontend on :8000
+python api/server.py            # API + built frontend on :8787 (or $PORT)
 cd ui && npm ci && npm run dev  # frontend dev server on :5173
 make check-deploy               # verify the deployment matches local HEAD
 ```
@@ -106,20 +124,33 @@ python aerosphinx_pipeline.py \
     --test-start 2024-05-17 --test-end 2024-06-18 --min-hours 18
 ```
 
-## Two reproducible configurations
+## Two reproducible configurations (legacy chapter pipeline)
+
+These belong to the legacy single-script pipeline, not to the Tracks. Its test
+window is **33 days** (2024-05-17 to 2024-06-18) and its training window 130
+days; a 33-day window cannot characterise seasonal behaviour, which is
+assumption F3 in `docs/SCIENTIFIC_ASSUMPTIONS.md`. The numbers are here because
+the chapter reports them, and they are labelled so they are not mistaken for
+the Track A result above.
 
 | | `tuned` (default) | `chapter` |
 |---|---|---|
 | Target | `log1p(PM2.5)`, inverted for reporting | raw concentration |
 | Features | base set + `PM25_Roll3`, `PM25_Roll7` | base set |
 | Output | `0.6 · y_model + 0.4 · y_(t-1)` | `y_model` |
+| Test days (n) | 33 | 33 |
 | Test MAE / RMSE / R² | **17.24 / 22.81 / +0.025** | 23.29 / 30.28 / −0.718 |
 
 The `chapter` configuration is the literal Section 3 and Section 5 formulation.
 The `tuned` configuration adds three documented choices, each selected on a
-validation window (10 April to 16 May 2024) that **closes before the test window
-opens**, so the test set influenced no modelling decision. `--select` regenerates
-that search and writes the full table to `results/configuration_selection.csv`.
+validation window (10 April to 16 May 2024, **37 days**) that closes before the
+test window opens, so the test set influenced no modelling decision. Note that
+37 autocorrelated days choosing among 36 candidate configurations is a weak
+selection signal: the spread across the whole validation grid is ~0.35 MAE
+(21.92 to 22.27) while the test-window difference between configurations is
+6 MAE, so the choice is close to arbitrary and should not be read as tuning.
+`--select` regenerates the search and writes the full table to
+`results/configuration_selection.csv`.
 
 Model hyperparameters are fixed as published in Section 5 in both cases and are
 never searched.

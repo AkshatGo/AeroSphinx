@@ -11,8 +11,6 @@ target date, and each is fitted on the training block of its fold only.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
-
 import numpy as np
 import pandas as pd
 

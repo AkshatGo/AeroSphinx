@@ -43,7 +43,7 @@ from dataclasses import dataclass, field
 import numpy as np
 import pandas as pd
 
-from aerosphinx.models.baselines import PersistenceBaseline, persistence_forecast
+from aerosphinx.models.baselines import persistence_forecast
 from aerosphinx.models.supervised import build_model
 
 __all__ = [

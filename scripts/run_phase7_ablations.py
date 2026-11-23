@@ -116,7 +116,7 @@ for set_name, sources in group_sets.items():
             X_list.append(
                 sub["AOD"].values if hasattr(sub["AOD"], "values") else sub["AOD"]
             )
-        print(f"  AOD column added")
+        print("  AOD column added")
 
     if "merra" in sources:
         m_cols = [
@@ -133,7 +133,7 @@ for set_name, sources in group_sets.items():
         print(f"  MERRA-2 columns added: {[c for c in m_cols if c in sub.columns]}")
 
     if len(X_list) == 0:
-        print(f"  ! No features available, skipping")
+        print("  ! No features available, skipping")
         continue
 
     # Stack; some entries may be Python scalars, coerce to float arrays
@@ -223,7 +223,7 @@ with open(run_dir / "manifest.json", "w") as f:
     json.dump(manifest, f, indent=2)
 
 # ── Summary ──────────────────────────────────────────────────────────
-print(f"\n=== Phase 7 Summary ===")
+print("\n=== Phase 7 Summary ===")
 print(f"Run directory: {run_dir}")
 print(f"Total ground rows: {n_total}")
 for r in results:
@@ -241,9 +241,9 @@ if improved:
         print(f"  {r['group_set']}: delta={r['delta_mae']:.2f}")
 else:
     print(
-        f"\nNo group set improved over ground-only baseline — "
-        f"environmental sources do not add predictive value beyond "
-        f"nine years of ground history (consistent with Phase 4 findings)."
+        "\nNo group set improved over ground-only baseline — "
+        "environmental sources do not add predictive value beyond "
+        "nine years of ground history (consistent with Phase 4 findings)."
     )
 
 print(f"\nPhase 7 complete. See {run_dir}/ for full outputs.")

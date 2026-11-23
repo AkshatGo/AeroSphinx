@@ -13,7 +13,6 @@ import pytest
 from aerosphinx.features.groups import (
     GROUND_ONLY_GROUPS,
     AvailabilityClass,
-    assemble_features,
     assert_operational_contract,
     describe_groups,
     get_group,

@@ -10,7 +10,7 @@ ROOT   := $(shell pwd)
 .DEFAULT_GOAL := help
 .PHONY: help install install-dev test test-unit test-integration audit \
         build-track-a run-track-a run-phase6 run-matrix run-sufficiency \
-        run-alignment lint check-deploy clean
+        run-alignment lint fmt check-claims check-deploy verify clean
 
 help: ## Show this help
 	@grep -hE '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) \
@@ -53,11 +53,24 @@ run-sufficiency: ## Compute per-season source sufficiency
 run-alignment: ## Emit daily coverage, missingness and alignment report
 	$(PYTHON) scripts/run_daily_alignment.py
 
-lint: ## Byte-compile every module as a syntax check
+lint: ## Byte-compile, then check formatting and lint
 	$(PYTHON) -m compileall -q src scripts tests
+	$(PYTHON) -m black --check src scripts tests api
+	$(PYTHON) -m isort --check-only src scripts tests api
+	$(PYTHON) -m ruff check src scripts tests api
+
+fmt: ## Apply black and isort; legacy/ and the legacy pipeline are untouched
+	$(PYTHON) -m isort src scripts tests api
+	$(PYTHON) -m black src scripts tests api
+
+check-claims: ## Verify README numbers against persisted artefacts
+	$(PYTHON) scripts/check_claims.py --verbose
 
 check-deploy: ## Verify the deployment serves the local HEAD commit
 	$(PYTHON) scripts/check_deploy.py
+
+verify: test lint check-claims ## Everything CI runs, locally
+	@echo "verify: tests, formatting, lint and published numbers all pass"
 
 clean: ## Remove build and cache artefacts
 	rm -rf build dist *.egg-info .pytest_cache

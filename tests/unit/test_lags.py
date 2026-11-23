@@ -7,7 +7,6 @@ stale observation to be presented as a recent one.
 
 from __future__ import annotations
 
-import numpy as np
 import pandas as pd
 import pytest
 

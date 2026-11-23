@@ -146,7 +146,6 @@ def rolling_origin_folds(
 
     start = series.min().normalize()
     end = series.max().normalize()
-    total_days = (end - start).days + 1
 
     folds: list[Fold] = []
     index = 0

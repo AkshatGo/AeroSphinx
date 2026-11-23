@@ -8,7 +8,6 @@ import pytest
 
 from aerosphinx.quality.station_audit import (
     STATION_LOCAL_COLUMNS,
-    VariableAudit,
     audit_station_columns,
 )
 

@@ -33,7 +33,6 @@ uses no observed quantity, so it cannot leak the target or any future value.
 
 from __future__ import annotations
 
-import numpy as np
 import pandas as pd
 
 __all__ = [

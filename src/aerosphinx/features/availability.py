@@ -34,7 +34,7 @@ from dataclasses import dataclass, field
 import numpy as np
 import pandas as pd
 
-from aerosphinx.features.groups import FEATURE_GROUPS, get_group
+from aerosphinx.features.groups import get_group
 
 __all__ = [
     "FusionRules",

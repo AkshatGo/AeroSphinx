@@ -636,7 +636,7 @@ def forecast_endpoint(body: dict) -> dict:
             "status": "DEGRADED",
             "forecast": None,
             "interval": None,
-            "reason": f"No learned model has been shown to beat persistence at p < 0.05 (D-006: Wilcoxon p = 0.1495; bootstrap 95% CI [−6.47, +1.39] spans zero).",
+            "reason": "No learned model has been shown to beat persistence at p < 0.05 (D-006: Wilcoxon p = 0.1495; bootstrap 95% CI [−6.47, +1.39] spans zero).",
             "used_features": {k: True for k in needs},
         }
 
@@ -648,7 +648,7 @@ def forecast_endpoint(body: dict) -> dict:
             "status": "DEGRADED",
             "forecast": None,
             "interval": None,
-            "reason": f"Full fusion does not beat its own ground-only ablation (ground_history_only MAE 16.617 vs full ensemble 17.298; D-007).",
+            "reason": "Full fusion does not beat its own ground-only ablation (ground_history_only MAE 16.617 vs full ensemble 17.298; D-007).",
             "used_features": {k: True for k in needs},
         }
 
@@ -659,7 +659,7 @@ def forecast_endpoint(body: dict) -> dict:
         "status": "ABSTAINED",
         "forecast": None,
         "interval": None,
-        "reason": f"The repository produces forecasts through offline Python scripts. There is no inference endpoint; no prediction is returned rather than inventing a value.",
+        "reason": "The repository produces forecasts through offline Python scripts. There is no inference endpoint; no prediction is returned rather than inventing a value.",
         "used_features": {k: True for k in needs},
     }
 

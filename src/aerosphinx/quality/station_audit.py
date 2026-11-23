@@ -41,7 +41,6 @@ __all__ = [
     "VariableAudit",
     "STATION_LOCAL_COLUMNS",
     "audit_station_columns",
-    "compare_against_merra",
 ]
 
 

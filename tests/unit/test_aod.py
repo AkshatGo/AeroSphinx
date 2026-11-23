@@ -11,7 +11,6 @@ Covers the four test categories required by ``AGENTS.md`` section 8:
 from __future__ import annotations
 
 import numpy as np
-import pandas as pd
 import pytest
 
 from aerosphinx.ingestion.aod import (
@@ -190,8 +189,6 @@ def test_out_of_range_values_are_excluded():
 
 def test_window_selects_the_expected_pixel_count(synthetic_granule):
     """The window must select the pixels inside its half-width."""
-    latitude = np.linspace(30.0, 20.0, 51)
-    longitude = np.linspace(75.0, 85.0, 51)
     # A window of half-width 0.5 degrees covers one row and one column
     # of the 0.2-degree grid, plus the hot spot.
     rules = AODRules(window_half_width_deg=0.25)

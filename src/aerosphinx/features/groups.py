@@ -244,7 +244,6 @@ def distinctive_features(group_names) -> list[str]:
     must therefore be judged on the features that distinguish a group set
     from the ground-only model: the environmental groups it adds.
     """
-    ground = set(assemble_features(GROUND_ONLY_GROUPS))
     features: list[str] = []
     for name in group_names:
         if name in GROUND_ONLY_GROUPS:

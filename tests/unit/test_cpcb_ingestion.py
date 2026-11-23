@@ -15,9 +15,7 @@ import pytest
 
 from aerosphinx.ingestion.cpcb import (
     CPCBRules,
-    aggregate_daily,
     load_cpcb_daily,
-    read_cpcb_hourly,
 )
 
 pytestmark = pytest.mark.unit
@@ -91,7 +89,6 @@ def test_aggregation_is_independent_of_file_split(cpcb_factory, tmp_path, rules)
     single.frame.to_csv("/dev/null", index=False)
 
     # Same hours split across two files.
-    import shutil
 
     split_dir = tmp_path / "cpcb_split"
     split_dir.mkdir()

@@ -21,10 +21,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 
-import numpy as np
 import pandas as pd
-
-from aerosphinx.quality.station_audit import STATION_LOCAL_COLUMNS
 
 __all__ = ["StationMetDaily", "load_station_met_daily"]
 

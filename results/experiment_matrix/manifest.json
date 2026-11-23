@@ -1,11 +1,11 @@
 {
-  "run_id": "matrix-20261123T153706Z",
-  "generated_utc": "2026-11-23T15:37:09+00:00",
+  "run_id": "matrix-20261123T153747Z",
+  "generated_utc": "2026-11-23T15:37:50+00:00",
   "git": {
-    "head_sha": "40e0d9a379b471218c16c61a972f869e56ad111a",
+    "head_sha": "bbddc6856cf520635eab90edd2ae0f9c9f562913",
     "branch": "fix/make-it-work",
-    "dirty": true,
-    "dirty_entries": 3
+    "dirty": false,
+    "dirty_entries": 0
   },
   "environment": {
     "python": "3.12.3",

@@ -6,6 +6,10 @@ import numpy as np
 import pandas as pd
 import pytest
 
+from aerosphinx.evaluation.block_inference import (
+    estimate_block_length,
+    moving_block_bootstrap_ci,
+)
 from aerosphinx.evaluation.metrics import (
     AQI_LABELS,
     aqi_category,
@@ -249,3 +253,26 @@ def test_compare_models_requires_the_baseline():
         compare_models(
             np.array([1.0, 2.0]), {"a": np.array([1.0, 2.0])}, baseline="missing"
         )
+
+
+def test_constant_error_series_is_not_blocked():
+    """A series with no variance has no serial dependence to break.
+
+    Pandas divides by its zero standard deviation while computing the
+    autocorrelation, so this used to emit a RuntimeWarning on every test run.
+    """
+    import warnings
+
+    with warnings.catch_warnings():
+        warnings.simplefilter("error", RuntimeWarning)
+        assert estimate_block_length(np.ones(120)) == 1
+        assert estimate_block_length(np.zeros(60)) == 1
+
+
+def test_block_bootstrap_interval_for_a_constant_series_is_degenerate():
+    values = np.ones(120)
+    result = moving_block_bootstrap_ci(values, values, values)
+    assert result["delta"] == pytest.approx(0.0)
+    assert result["ci_low"] == pytest.approx(0.0)
+    assert result["ci_high"] == pytest.approx(0.0)
+    assert result["significant"] is False

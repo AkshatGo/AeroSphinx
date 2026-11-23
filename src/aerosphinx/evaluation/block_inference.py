@@ -82,6 +82,14 @@ def estimate_block_length(
     if n < 20:
         return 1
 
+    # A constant series has no serial dependence to break, and pandas divides
+    # by its zero standard deviation while computing the autocorrelation. The
+    # answer is 1 either way; returning early avoids a RuntimeWarning that would
+    # otherwise appear in every test run and train readers to ignore warnings.
+    spread = float(np.nanstd(values))
+    if not np.isfinite(spread) or spread == 0.0:
+        return 1
+
     series = pd.Series(values)
     lags = list(range(1, min(max_lag, n // 2) + 1))
     autocorrelation = np.array([series.autocorr(lag) for lag in lags], dtype=float)

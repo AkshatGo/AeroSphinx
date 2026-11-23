@@ -29,6 +29,10 @@ from dataclasses import dataclass
 import numpy as np
 import pandas as pd
 
+from aerosphinx.evaluation.block_inference import (
+    holm_bonferroni,
+    moving_block_bootstrap_ci,
+)
 from aerosphinx.evaluation.metrics import evaluate
 from aerosphinx.evaluation.splits import Fold, rolling_origin_folds
 from aerosphinx.features.groups import assemble_features
@@ -37,6 +41,7 @@ from aerosphinx.models.supervised import build_model
 
 __all__ = [
     "MATRIX",
+    "MIN_REPORTABLE_N",
     "MatrixConfig",
     "MatrixResult",
     "matrix_config_manifest",
@@ -45,6 +50,16 @@ __all__ = [
 ]
 
 GROUND_GROUPS: tuple[str, ...] = ("pm25_history", "calendar")
+
+MIN_REPORTABLE_N: int = 30
+"""Below this many paired predictions a metric is reported as suppressed.
+
+A season or year with fewer than 30 pairs cannot support an MAE, and an R2 on
+a handful of autocorrelated days is actively misleading (the pre-fix matrix
+published R2 = -125.5 on two monsoon days). The row is still emitted so the
+count stays visible; the metric columns are left empty and ``reported`` is
+``False``. The API and the UI surface the empty value rather than a number.
+"""
 
 
 @dataclass(frozen=True)
@@ -375,10 +390,30 @@ def _empty_frames() -> dict[str, pd.DataFrame]:
             ]
         ),
         "by_season": pd.DataFrame(
-            columns=["track", "config", "model", "season", "n", "MAE", "RMSE", "R2"]
+            columns=[
+                "track",
+                "config",
+                "model",
+                "season",
+                "n",
+                "MAE",
+                "RMSE",
+                "R2",
+                "reported",
+            ]
         ),
         "by_year": pd.DataFrame(
-            columns=["track", "config", "model", "year", "n", "MAE", "RMSE", "R2"]
+            columns=[
+                "track",
+                "config",
+                "model",
+                "year",
+                "n",
+                "MAE",
+                "RMSE",
+                "R2",
+                "reported",
+            ]
         ),
         "fold_metrics": pd.DataFrame(
             columns=["track", "config", "model", "Fold", "n", "MAE", "RMSE"]
@@ -387,7 +422,20 @@ def _empty_frames() -> dict[str, pd.DataFrame]:
             columns=["track", "config", "model", "n", "MAE", "RMSE", "MedianAE", "R2"]
         ),
         "ablations": pd.DataFrame(
-            columns=["track", "config", "reference", "delta_MAE", "n"]
+            columns=[
+                "track",
+                "config",
+                "reference",
+                "delta_MAE",
+                "n",
+                "ci_low",
+                "ci_high",
+                "block_length_days",
+                "p_value",
+                "p_holm",
+                "significant",
+                "reported",
+            ]
         ),
     }
 
@@ -437,6 +485,12 @@ def _overall(predictions: pd.DataFrame) -> pd.DataFrame:
 
 
 def _grouped(predictions: pd.DataFrame, column: str, label: str) -> pd.DataFrame:
+    """MAE/RMSE/R2 per (track, config, model, group).
+
+    Groups smaller than :data:`MIN_REPORTABLE_N` keep their row — the count is
+    itself information — but carry no metric, so nothing downstream can quote
+    an R2 computed on two days.
+    """
     rows = []
     usable = predictions.dropna(subset=["Prediction", "Target"])
     for (track, config, model), group in usable.groupby(
@@ -444,16 +498,19 @@ def _grouped(predictions: pd.DataFrame, column: str, label: str) -> pd.DataFrame
     ):
         for key, subset in group.groupby(column, sort=False):
             metrics = evaluate(subset["Target"], subset["Prediction"])
+            n = int(metrics["n"])
+            reportable = n >= MIN_REPORTABLE_N
             rows.append(
                 {
                     "track": track,
                     "config": config,
                     "model": model,
                     label: key,
-                    "n": int(metrics["n"]),
-                    "MAE": metrics["MAE"],
-                    "RMSE": metrics["RMSE"],
-                    "R2": metrics["R2"],
+                    "n": n,
+                    "MAE": metrics["MAE"] if reportable else float("nan"),
+                    "RMSE": metrics["RMSE"] if reportable else float("nan"),
+                    "R2": metrics["R2"] if reportable else float("nan"),
+                    "reported": reportable,
                 }
             )
     return pd.DataFrame(rows)
@@ -499,25 +556,73 @@ def _common(predictions: pd.DataFrame):
 
 
 def _ablate(aligned) -> pd.DataFrame:
+    """Paired MAE differences with block-aware uncertainty.
+
+    Track A has always reported a moving-block bootstrap interval and a
+    Holm-adjusted p-value against persistence; Track B — the track that
+    carries the central negative claim — reported a bare point estimate.
+    Both tracks are now treated identically: every ablation pair carries its
+    paired delta, a bootstrap interval that respects serial correlation, a
+    two-sided p-value derived from the bootstrap sign, and a Holm adjustment
+    across the ablation family *within the track* (the comparisons are
+    analysed per track, so a Track B delta is never penalised by the size of
+    the Track A family).
+
+    A pair whose interval spans zero is reported as ``not_significant`` even
+    when the point estimate looks large, and a pair below
+    :data:`MIN_REPORTABLE_N` carries no delta at all.
+    """
     rows = []
     for track, (target, common) in aligned.items():
         y = target.to_numpy(dtype=float)
+        dates = pd.Series(pd.to_datetime(common.index))
+        track_rows = []
         for config, reference in ABLATION_PAIRS:
             if config not in common.columns or reference not in common.columns:
                 continue
-            delta = float(
-                np.mean(np.abs(common[config].to_numpy(dtype=float) - y))
-                - np.mean(np.abs(common[reference].to_numpy(dtype=float) - y))
+            a = common[config].to_numpy(dtype=float)
+            b = common[reference].to_numpy(dtype=float)
+            n = int(np.isfinite(y).sum())
+            interval = moving_block_bootstrap_ci(y, a, b, dates=dates)
+            p_a_better = interval.get("p_a_better", float("nan"))
+            p_value = (
+                float(min(1.0, 2 * min(p_a_better, 1 - p_a_better)))
+                if np.isfinite(p_a_better)
+                else float("nan")
             )
-            rows.append(
+            reportable = n >= MIN_REPORTABLE_N
+            track_rows.append(
                 {
                     "track": track,
                     "config": config,
                     "reference": reference,
-                    "delta_MAE": delta,
-                    "n": int(len(y)),
+                    "delta_MAE": (
+                        float(interval["delta"]) if reportable else float("nan")
+                    ),
+                    "n": n,
+                    "ci_low": float(interval["ci_low"]) if reportable else float("nan"),
+                    "ci_high": (
+                        float(interval["ci_high"]) if reportable else float("nan")
+                    ),
+                    "block_length_days": int(interval.get("block_length", 0)),
+                    "p_value": p_value if reportable else float("nan"),
+                    "reported": reportable,
                 }
             )
+        if track_rows:
+            pvalues = [row["p_value"] for row in track_rows]
+            adjusted = holm_bonferroni(
+                [1.0 if not np.isfinite(p) else p for p in pvalues]
+            )
+            for row, p_holm in zip(track_rows, adjusted):
+                row["p_holm"] = float(p_holm)
+                row["significant"] = bool(
+                    row["reported"]
+                    and np.isfinite(p_holm)
+                    and p_holm < 0.05
+                    and not (row["ci_low"] <= 0.0 <= row["ci_high"])
+                )
+            rows.extend(track_rows)
     return pd.DataFrame(rows)
 
 

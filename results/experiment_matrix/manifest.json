@@ -1,18 +1,18 @@
 {
-  "run_id": "matrix-20261122T085518Z",
-  "generated_utc": "2026-11-22T08:55:20+00:00",
+  "run_id": "matrix-20261123T152752Z",
+  "generated_utc": "2026-11-23T15:27:55+00:00",
   "git": {
-    "head_sha": "f080d8fe0fbc4994990022b41d3d865644defa3b",
-    "branch": "main",
+    "head_sha": "b15709c39f106fd318ecce3dfa09ad497e621538",
+    "branch": "fix/make-it-work",
     "dirty": true,
-    "dirty_entries": 34
+    "dirty_entries": 8
   },
   "environment": {
-    "python": "3.12.13",
-    "platform": "Linux-7.0.12-arch1-1-x86_64-with-glibc2.43",
+    "python": "3.12.3",
+    "platform": "Linux-6.18.15-x86_64-with-glibc2.39",
     "packages": {
       "numpy": "2.5.4",
-      "pandas": "3.1.1",
+      "pandas": "3.0.6",
       "scikit-learn": "1.9.1",
       "xgboost": "3.4.1",
       "joblib": "1.6.0",

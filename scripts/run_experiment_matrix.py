@@ -110,7 +110,12 @@ def main() -> int:
         "predictions.csv": _combine([r.predictions for r in results]),
     }
     for name, table in artifacts.items():
-        table.to_csv(out_dir / name, index=False)
+        # Ten significant digits: enough for every metric this study reports,
+        # and stable across pandas/numpy builds. Without it a regeneration in a
+        # different environment rewrites every float with a different last
+        # digit, which makes the artefact diff unreadable and hides the real
+        # change in noise.
+        table.to_csv(out_dir / name, index=False, float_format="%.10g")
 
     (out_dir / "matrix_configs.json").write_text(
         json.dumps(
@@ -128,6 +133,14 @@ def main() -> int:
     provenance = build_provenance(
         run_id=run_id,
         root=root,
+        # The run writes its own artefacts; only source changes count as dirt.
+        ignore_dirty=(
+            (
+                str(out_dir.relative_to(root))
+                if out_dir.is_relative_to(root)
+                else str(out_dir)
+            ),
+        ),
         inputs=(
             {"fused_dataset": str(input_csv.relative_to(root))}
             if input_csv.is_relative_to(root)

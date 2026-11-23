@@ -48,8 +48,14 @@ def _sha256(path: Path) -> str:
     return digest.hexdigest()
 
 
-def git_state(root: Path) -> dict:
-    """Capture the Git SHA, branch and dirty state of the checkout."""
+def git_state(root: Path, ignore: tuple[str, ...] = ()) -> dict:
+    """Capture the Git SHA, branch and dirty state of the checkout.
+
+    ``ignore`` lists path prefixes that do not count as dirt: a run that writes
+    its own artefacts makes the tree dirty by definition, and that must not be
+    recorded as 'this result came from uncommitted code'. Anything outside the
+    output directory still counts, which is the case the field exists for.
+    """
 
     def run(*args: str) -> str:
         result = subprocess.run(
@@ -58,12 +64,22 @@ def git_state(root: Path) -> dict:
         return result.stdout.strip()
 
     try:
-        status = run("status", "--porcelain")
+        status = run("status", "--porcelain").splitlines()
+        if ignore:
+            normalised = tuple(prefix.rstrip("/") for prefix in ignore)
+            status = [
+                line
+                for line in status
+                if not any(
+                    line[3:].strip().strip('"').startswith(prefix)
+                    for prefix in normalised
+                )
+            ]
         return {
             "head_sha": run("rev-parse", "HEAD"),
             "branch": run("rev-parse", "--abbrev-ref", "HEAD"),
             "dirty": bool(status),
-            "dirty_entries": len(status.splitlines()) if status else 0,
+            "dirty_entries": len(status),
         }
     except FileNotFoundError:  # pragma: no cover
         return {"head_sha": None, "branch": None, "dirty": None}
@@ -100,13 +116,19 @@ def build_provenance(
     dataset: dict,
     rules: dict,
     outputs: dict | None = None,
+    ignore_dirty: tuple[str, ...] = (),
 ) -> ProvenanceRecord:
-    """Assemble a provenance record for an ingestion run."""
+    """Assemble a provenance record for an ingestion run.
+
+    ``ignore_dirty`` names path prefixes that are written by this run, so the
+    record does not report the run as having been produced from uncommitted
+    code merely because it wrote its own output.
+    """
     root = Path(root)
     return ProvenanceRecord(
         run_id=run_id,
         generated_utc=datetime.now(timezone.utc).isoformat(timespec="seconds"),
-        git=git_state(root),
+        git=git_state(root, ignore=ignore_dirty),
         environment={
             "python": sys.version.split()[0],
             "platform": platform.platform(),

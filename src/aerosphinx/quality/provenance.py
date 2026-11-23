@@ -64,7 +64,13 @@ def git_state(root: Path, ignore: tuple[str, ...] = ()) -> dict:
         return result.stdout.strip()
 
     try:
-        status = run("status", "--porcelain").splitlines()
+        # Read the raw porcelain output: ``run`` strips leading whitespace,
+        # which would eat the first line's status column and corrupt the
+        # path slice below. Porcelain v1 is exactly "XY <path>".
+        raw = subprocess.run(
+            ["git", "status", "--porcelain"], cwd=root, capture_output=True, text=True
+        ).stdout
+        status = [line for line in raw.splitlines() if line.strip()]
         if ignore:
             normalised = tuple(prefix.rstrip("/") for prefix in ignore)
             status = [

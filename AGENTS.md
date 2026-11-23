@@ -127,7 +127,23 @@ All features must obey an explicit availability contract.
 - **Phase 8** — Operational covariate availability and forecasting.
   *(blocked: D-002; Track B stays retrospective)*
 - **Phase 9** — CI, reproducibility and research reporting. *(complete — CI
-  runs the test suite and gates; `scripts/check_deploy.py` verifies deploys)*
+  runs the tests, formatting, lint and scientific gates;
+  `scripts/check_deploy.py` verifies deploys)*
+
+### Non-negotiable gates (added 2026-11-23)
+
+Three checks now define "the repository works", and each of them caught a
+real defect before it was added:
+
+| Gate | Command | What it prevents |
+|---|---|---|
+| Published numbers | `aerosphinx check-claims` | Prose and artefacts drifting apart; it re-derives every README number from `results/` |
+| Reproducibility | `aerosphinx check-reproducibility` | A committed artefact that no longer follows from the code |
+| Style and lint | `make lint` | The CI lint job being red for months without anyone noticing |
+
+`results/CANONICAL.json` is the registry behind the first gate. A change to a
+published number is not complete until the artefact, the registry and the
+README agree in the same commit.
 
 **Never skip an acceptance gate.**
 

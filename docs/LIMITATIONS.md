@@ -33,6 +33,15 @@ precisely "not demonstrated on this data". The plan treats the multisource
 track as a constrained experiment precisely because this outcome was
 foreseeable.
 
+**Revision 2026-11-23.** The comparison above is the legacy 33-day evaluation.
+On the canonical matrix it is made on 49 Track B dates and now carries a
+paired block-bootstrap interval and a Holm adjustment: AOD +0.21 [−2.19,
++2.61], MERRA-2 +4.24 [+1.26, +7.18] at Holm p = 0.059, full fusion +4.70
+[+0.30, +10.41] at Holm p = 0.34. So the limitation is stronger than "does not
+help": at this sample size the data cannot separate any environmental gain or
+loss from zero, and the honest description of the result is *underpowered*,
+not *negative*. See `docs/PHASE7_REPORT.md` §10.
+
 ### 1.3 The improvement over persistence is not statistically significant
 
 Paired Wilcoxon signed-rank test on the 33 test days: **p = 0.1495**.

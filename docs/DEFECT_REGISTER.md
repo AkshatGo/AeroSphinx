@@ -380,6 +380,27 @@ rather than a settled result.
 
 ---
 
+
+**Revision 2026-11-23 — inference added, and it changes the claim.** The
+figures above come from the legacy 33-day evaluation. On the canonical matrix
+(Phase 7) the comparison is made on 49 Track B dates and now carries a paired
+moving-block bootstrap interval and a Holm adjustment, alongside every other
+Track B ablation:
+
+| Comparison | Δ MAE | 95% CI | Holm p | Distinguishable from zero |
+|---|---|---|---|---|
+| M2 − M1 (adds AOD) | +0.21 | [−2.19, +2.61] | 1.000 | no |
+| M3 − M1 (adds MERRA-2) | +4.24 | [+1.26, +7.18] | 0.059 | no |
+| M4 − M1 (full fusion) | +4.70 | [+0.30, +10.41] | 0.340 | no |
+
+The defect as stated — the ensemble does not beat its own ground-only
+ablation — remains true as an ordering of point estimates, and the separate
+finding that Track B's ground-only model does not beat persistence on the full
+80-date set (28.59 vs 22.98) is unaffected. What is no longer supported by the
+data is a *measured* cost of adding a source: at n = 49 with daily
+autocorrelation, no environmental delta is separable from zero. The phase
+report's §10 states the same thing. Registry: `results/CANONICAL.json`.
+
 ## D-008 — PBLH is unavailable and the configured fallback is wrong
 
 | | |

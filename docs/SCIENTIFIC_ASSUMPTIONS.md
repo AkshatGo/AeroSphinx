@@ -126,3 +126,26 @@ An assumption may only be relied upon in a research claim when it is
 **UNSUPPORTED** assumptions may not be used to support a claim at all, and
 where the shipped pipeline depends on one, that dependency must be removed or
 the dependent claim withdrawn.
+
+---
+
+## I. Revision 2026-11-23 — assumptions re-tested on the canonical matrix
+
+The Phase 0 rows above describe the legacy 33-day evaluation. Where a row's
+verdict changes on the canonical Phase 7 matrix, the new evidence is recorded
+here rather than by rewriting the original entry.
+
+| Row | Original verdict | On the matrix | Consequence |
+|---|---|---|---|
+| F3 (a single 33-day window is enough) | UNSUPPORTED | Falsified, as expected: 97 folds and 2,615 matched predictions replace it | The rolling-origin protocol is the only evaluation quoted in the README |
+| F4 (the ensemble beats persistence) | UNSUPPORTED, p = 0.1495 | Track A ridge −0.65, day CI [−1.14, −0.17], year CI [−1.20, +0.06] | Small gain; robust to day resampling, not to year resampling |
+| F5 (fusion beats ground-only) | UNSUPPORTED — contradicted | No Track B ablation separates from zero (AOD +0.21 [−2.19, +2.61], fusion +4.70 [+0.30, +10.41], Holm p 0.34) | "Underpowered" replaces "contradicted": the ordering of point estimates is not a measurement |
+| F7 (the five-day forecast shows skill) | UNSUPPORTED | Unchanged — D-002 is still open | No operational forecast claim anywhere in the README |
+
+Two assumptions are now *testable* and were tested:
+
+* **C3** required a sensitivity analysis over the AOD collocation window;
+  `results/runs/D-aod-*/aod_window_sensitivity.csv` records it.
+* **G1** ("repeated runs give identical numbers") is now enforced by
+  `aerosphinx check-reproducibility`, which regenerates the matrix into a
+  temporary directory and compares it field by field.

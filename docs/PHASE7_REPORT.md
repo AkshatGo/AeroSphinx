@@ -198,7 +198,7 @@ direction (106.9 vs 92.6).
 
 ## 7. Delivery
 
-- **API (12 read-only routes):** `/api/health`, `/status`, `/dataset`,
+- **API (13 read-only routes):** `/api/health`, `/status`, `/dataset`,
   `/experiments`, `/series`, `/coverage`, `/manifests`, `/experiment-matrix`,
   `/ablations`, `/seasonal-sufficiency`, `/alignment`, and the
   eligibility-gated `POST /api/forecast` (which abstains rather than inventing
@@ -209,7 +209,7 @@ direction (106.9 vs 92.6).
   persisted artefacts; empty states state why data is unavailable.
 - **Deploy parity:** `scripts/check_deploy.py` compares the deployed commit to
   local HEAD; `make check-deploy` runs it. Cold starts are retried.
-- **Tests:** 253 Python tests (unit + integration) and 23 UI tests.
+- **Tests:** 260 Python tests (unit + integration) and 25 UI tests.
 
 ---
 
@@ -236,6 +236,46 @@ direction (106.9 vs 92.6).
 make run-matrix        # M0–M8 matrix -> results/experiment_matrix/
 make run-sufficiency   # season × source status -> results/sufficiency/
 make run-alignment     # coverage, missingness, report -> results/alignment/
-make test              # 253 tests
+make test              # 260 tests
 make check-deploy      # deployed commit == local HEAD
 ```
+
+---
+
+## 10. Revision 2026-11-23 — inference added to Track B
+
+The point estimates in §§1.2–1.4 are unchanged, but they were published
+without uncertainty while Track A carried a full block bootstrap and a Holm
+correction. Both tracks now go through the same treatment, and the Track A
+ridge-vs-persistence pair joins the family so its own headline has an interval.
+
+| Track | Comparison | Δ MAE | Day-level 95% CI | Year-blocked 95% CI | Holm p | Distinguishable from zero |
+|---|---|---|---|---|---|---|
+| A | M1 ridge − M0 persistence | −0.65 | [−1.14, −0.17] | [−1.20, +0.06] | 0.008 | days: yes · years: no |
+| B | M1 ridge − M0 persistence (49 common dates) | −0.25 | [−5.66, +5.11] | [−5.66, +5.11] | 1.000 | no |
+| B | M2 − M1 (AOD) | +0.21 | [−2.19, +2.61] | same | 1.000 | no |
+| B | M3 − M1 (MERRA-2) | +4.24 | [+1.26, +7.18] | same | 0.059 | no |
+| B | M4 − M1 (full fusion) | +4.70 | [+0.30, +10.41] | same | 0.340 | no |
+
+Consequences for the claims in this report:
+
+1. **§1.2 must be read as ordinal, not measured.** "Adding AOD costs +0.21,
+   MERRA-2 +4.24, fusion +4.70" is a ranking of point estimates on 49 days.
+   None of the three is distinguishable from zero, and the MERRA-2 pair sits
+   at Holm p = 0.059. The claim supported by the data is "no environmental
+   group demonstrably adds value on this window", which is what the report's
+   narrative already says; the numerical attribution was stronger than the
+   evidence.
+2. **§1.4's 5.6 MAE gap is a coverage effect, not a modelling one.** On the
+   49 common dates ridge and persistence are indistinguishable (−0.25). The
+   gap lives in the 31 dates outside the common set, which is the
+   informative-missingness structure the protocol exists to expose.
+3. **The Track A headline is small.** −0.65 MAE against a 22.09 baseline is
+   about 3% of the observed MAE, and the year-blocked interval includes zero.
+   "Beats persistence" is defensible for the record as a whole; "generalises"
+   is not.
+
+Every row above is reproduced by `aerosphinx check-claims` against
+`results/experiment_matrix/matrix_ablations.csv`; the register in
+`results/CANONICAL.json` is the authority if this table and the CSV ever
+disagree.

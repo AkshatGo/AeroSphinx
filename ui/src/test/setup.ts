@@ -20,3 +20,7 @@ if (!window.matchMedia) {
     dispatchEvent: vi.fn(),
   }));
 }
+// jsdom logs "Not implemented: Window's scrollTo()" for every call. The shell
+// resets the scroll position on a route change, so stub it rather than let the
+// notice drown out real output.
+window.scrollTo = vi.fn();

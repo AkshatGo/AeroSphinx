@@ -7,6 +7,7 @@ import {
   LoadingBlock,
   PageHeader,
   StatusBadge,
+  formatUtc,
 } from "@/components/ui/primitives";
 
 function download(filename: string, content: string, mime: string) {
@@ -178,7 +179,7 @@ export function Reports() {
             description="Source: results/metrics.json"
             actions={
               m?.generated ? (
-                <StatusBadge status="PASS" label={`generated ${m.generated}`} />
+                <StatusBadge status="PASS" label={`generated ${formatUtc(m.generated)}`} />
               ) : undefined
             }
           >
@@ -224,7 +225,7 @@ export function Reports() {
             <pre className="max-h-64 overflow-auto rounded-md border border-line bg-surface-raised p-3 font-mono text-[11px] leading-relaxed min-w-0">
 {`AeroSphinx — Experiment Report
 Configuration : ${m?.configuration ?? "unavailable"}
-Generated     : ${m?.generated ?? "unavailable"}
+Generated     : ${formatUtc(m?.generated)}
 Station       : ${m?.station?.name ?? "unavailable"}
 Train rows    : ${m?.split?.n_train ?? "unavailable"}
 Test rows     : ${m?.split?.n_test ?? "unavailable"}

@@ -6,6 +6,7 @@ import {
   Card,
   PageHeader,
   StatusBadge,
+  formatUtc,
 } from "@/components/ui/primitives";
 
 interface Prefs {
@@ -228,7 +229,7 @@ export function Settings() {
             <div className="flex justify-between">
               <dt className="text-fg-muted">Last sync</dt>
               <dd className="font-mono text-[11px]">
-                {status.data?.generated ?? "—"}
+                {formatUtc(status.data?.generated)}
               </dd>
             </div>
           </dl>

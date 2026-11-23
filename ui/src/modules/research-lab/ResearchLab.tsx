@@ -15,6 +15,7 @@ import {
   PageHeader,
   StatusBadge,
   formatNumber,
+  formatUtc,
 } from "@/components/ui/primitives";
 
 function cell(row: ArtifactRow, key: string) {
@@ -149,8 +150,8 @@ export function ResearchLab() {
           </Card>
 
           <Card
-            title="Model comparison"
-            description="One-day horizon · identical 33-row holdout (2024-05-17 → 2024-06-18)"
+            title="Model comparison (legacy pipeline)"
+            description="One-day horizon on the legacy 33-day holdout, 2024-05-17 → 2024-06-18"
           >
             {experiments.isLoading && <LoadingBlock rows={4} />}
             {experiments.isError && (
@@ -202,7 +203,10 @@ export function ResearchLab() {
           </Card>
 
           <div className="grid gap-4 md:grid-cols-2">
-            <Card title="Ablation (Track B)" description="Identical 33 test rows">
+            <Card
+              title="Legacy ablation (Track B)"
+              description="33 test rows, superseded by the matrix ablations below"
+            >
               {m?.baselines ? (
                 <ul className="space-y-1.5 text-sm">
                   {Object.entries(m.baselines).map(([name, b]) => (
@@ -280,7 +284,7 @@ export function ResearchLab() {
                 <span className="text-right font-mono text-[11px] leading-4 text-fg-muted">
                   {mx.run_id ?? "matrix"}
                   <br />
-                  {mx.generated ? `generated ${mx.generated}` : "generated —"}
+                  {mx.generated ? `generated ${formatUtc(mx.generated)}` : "generated —"}
                 </span>
               ) : undefined
             }

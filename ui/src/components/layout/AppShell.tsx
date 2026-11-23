@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { NavLink, Outlet, useLocation } from "react-router-dom";
 import { useTheme } from "@/lib/theme";
 
@@ -41,9 +41,35 @@ export function AppShell() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const location = useLocation();
   const current = NAV.find((n) => n.to === location.pathname);
+  const mainRef = useRef<HTMLElement>(null);
+
+  // A drawer that cannot be dismissed from the keyboard traps the reader.
+  useEffect(() => {
+    if (!mobileOpen) return;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setMobileOpen(false);
+    };
+    window.addEventListener("keydown", onKey);
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [mobileOpen]);
+
+  // Moving between modules should start at the top of the new page, not at the
+  // scroll position of the previous one.
+  useEffect(() => {
+    mainRef.current?.scrollTo?.({ top: 0 });
+    window.scrollTo({ top: 0 });
+  }, [location.pathname]);
 
   return (
     <div className="flex min-h-screen bg-bg text-fg">
+      <a className="skip-link" href="#main-content">
+        Skip to content
+      </a>
       {/* Sidebar */}
       <aside
         className={`fixed inset-y-0 left-0 z-40 w-64 shrink-0 overflow-y-auto border-r border-line bg-surface transition-transform md:static md:translate-x-0 ${
@@ -141,7 +167,12 @@ export function AppShell() {
           <ThemeToggle />
         </header>
 
-        <main className="mx-auto w-full max-w-7xl flex-1 p-4 md:p-6 lg:p-8">
+        <main
+          id="main-content"
+          ref={mainRef}
+          tabIndex={-1}
+          className="mx-auto w-full max-w-7xl flex-1 p-4 md:p-6 lg:p-8 focus:outline-none"
+        >
           <Outlet />
         </main>
 

@@ -1,4 +1,10 @@
-import { useCoverage, useExperiments, useStatus } from "@/lib/queries";
+import {
+  useCoverage,
+  useExperimentMatrix,
+  useExperiments,
+  useStatus,
+} from "@/lib/queries";
+import type { ArtifactRow } from "@/lib/api";
 import { DEFECTS } from "@/lib/reference";
 import {
   Card,
@@ -9,12 +15,44 @@ import {
   StatCard,
   StatusBadge,
   formatPct,
+  formatUtc,
 } from "@/components/ui/primitives";
+
+
+function numeric(row: ArtifactRow, key: string) {
+  const value = row[key];
+  return typeof value === "number" ? value : null;
+}
+
+function signed(value: number, digits = 2) {
+  return `${value >= 0 ? "+" : ""}${value.toFixed(digits)}`;
+}
+
+/** "−0.65 [−1.14, −0.17]" or a dash when the artefact withholds the value. */
+function paired(row: ArtifactRow | undefined) {
+  if (!row) return null;
+  const delta = numeric(row, "delta_MAE");
+  const low = numeric(row, "ci_low");
+  const high = numeric(row, "ci_high");
+  if (delta === null) return null;
+  const interval = low === null || high === null ? "" : ` [${signed(low)}, ${signed(high)}]`;
+  return { delta, text: `${signed(delta)}${interval}` };
+}
+
+function findPair(rows: ArtifactRow[] | undefined, track: string, config: string, reference: string) {
+  return (rows ?? []).find(
+    (row) =>
+      String(row.track) === track &&
+      String(row.config) === config &&
+      String(row.reference) === reference,
+  );
+}
 
 export function CommandCenter() {
   const status = useStatus();
   const coverage = useCoverage();
   const experiments = useExperiments();
+  const matrix = useExperimentMatrix();
 
   if (status.isLoading) return <LoadingBlock rows={5} />;
   if (status.isError)
@@ -51,7 +89,7 @@ export function CommandCenter() {
           value={cov?.available ? formatPct(cov.all_sources_observed?.fraction) : "—"}
           hint={
             cov?.available
-              ? `${cov.all_sources_observed?.observed} of ${cov.rows} rows`
+              ? `${cov.all_sources_observed?.observed?.toLocaleString()} of ${cov.rows?.toLocaleString()} rows`
               : "Coverage unavailable"
           }
           tone="warning"
@@ -70,12 +108,14 @@ export function CommandCenter() {
         <StatCard
           label="Latest experiment"
           value={exp?.configuration ?? "—"}
-          hint={exp?.generated ? `generated ${exp.generated}` : "no metrics.json"}
+          hint={
+            exp?.generated ? `generated ${formatUtc(exp.generated)}` : "no metrics.json"
+          }
           to="/research-lab"
         />
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-3">
+      <div className="grid items-start gap-4 lg:grid-cols-3">
         <Card title="Repository" description="From git at request time">
           <dl className="space-y-2 text-sm">
             <div className="flex justify-between gap-3">
@@ -100,7 +140,9 @@ export function CommandCenter() {
             </div>
             <div className="flex justify-between gap-3">
               <dt className="text-fg-muted">API generated</dt>
-              <dd className="font-mono text-[11px]">{s.generated}</dd>
+              <dd className="whitespace-nowrap text-right font-mono text-[11px]">
+                {formatUtc(s.generated)}
+              </dd>
             </div>
           </dl>
         </Card>
@@ -117,8 +159,8 @@ export function CommandCenter() {
               ).map(([label, v]) => (
                 <li key={label} className="flex items-center justify-between gap-3">
                   <span className="text-fg-muted">{label}</span>
-                  <span className="font-mono text-xs">
-                    {v?.observed ?? 0} ({formatPct(v?.fraction)})
+                  <span className="whitespace-nowrap font-mono text-xs">
+                    {(v?.observed ?? 0).toLocaleString()} ({formatPct(v?.fraction)})
                   </span>
                 </li>
               ))}
@@ -128,23 +170,45 @@ export function CommandCenter() {
           )}
         </Card>
 
-        <Card title="Track summaries">
-          <div className="space-y-3 text-sm">
-            <div>
-              <p className="font-medium text-accent">Track A · historical CPCB</p>
-              <p className="text-xs text-fg-muted">
-                9-year rolling-origin backtest. No learned model significantly
-                beats persistence at one-day horizon (Wilcoxon p = 0.1495).
-              </p>
-            </div>
-            <div>
-              <p className="font-medium text-accent">Track B · multisource</p>
-              <p className="text-xs text-fg-muted">
-                Retrospective estimation only. Ground-only MAE 16.617 vs full
-                fusion 17.298 — fusion does not beat ground-only (D-007).
-              </p>
-            </div>
-          </div>
+        <Card
+          title="Track summaries"
+          description="Paired differences read from the matrix artefacts"
+        >
+          {(() => {
+            const ablations = matrix.data?.ablations;
+            const trackA = paired(findPair(ablations, "A", "M1", "M0"));
+            const trackB = paired(findPair(ablations, "B", "M4", "M1"));
+            if (!matrix.data?.available || (!trackA && !trackB)) {
+              return (
+                <EmptyState
+                  title="Matrix unavailable"
+                  description={matrix.data?.reason ?? "No paired ablations in the artefact."}
+                />
+              );
+            }
+            return (
+              <div className="space-y-3 text-sm">
+                <div>
+                  <p className="font-medium text-accent">Track A · historical CPCB</p>
+                  <p className="text-xs text-fg-muted">
+                    Ridge minus persistence over the full record:{" "}
+                    <span className="font-mono text-fg">{trackA?.text ?? "—"}</span>{" "}
+                    MAE. A gain of about 3%, and the year-resampled interval
+                    reaches zero.
+                  </p>
+                </div>
+                <div>
+                  <p className="font-medium text-accent">Track B · multisource</p>
+                  <p className="text-xs text-fg-muted">
+                    Retrospective only. Full fusion minus the ground-only model:{" "}
+                    <span className="font-mono text-fg">{trackB?.text ?? "—"}</span>{" "}
+                    MAE on matched dates, and no environmental ablation is
+                    distinguishable from zero.
+                  </p>
+                </div>
+              </div>
+            );
+          })()}
         </Card>
       </div>
 

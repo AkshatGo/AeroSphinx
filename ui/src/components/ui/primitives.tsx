@@ -223,6 +223,22 @@ export function formatNumber(value: number | null | undefined, digits = 2) {
   return value.toFixed(digits);
 }
 
+/**
+ * A platform timestamp is always UTC. Render it as "2026-11-23 16:17 UTC" so a
+ * reader never has to decode an ISO string, and never mistakes it for local
+ * time (the feed is UTC; the reader may be anywhere).
+ */
+export function formatUtc(iso: string | null | undefined): string {
+  if (!iso) return "—";
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return iso;
+  const pad = (value: number) => String(value).padStart(2, "0");
+  return (
+    `${date.getUTCFullYear()}-${pad(date.getUTCMonth() + 1)}-${pad(date.getUTCDate())}` +
+    ` ${pad(date.getUTCHours())}:${pad(date.getUTCMinutes())} UTC`
+  );
+}
+
 export function formatPct(fraction: number | null | undefined, digits = 1) {
   if (fraction === null || fraction === undefined) return "—";
   return `${(fraction * 100).toFixed(digits)}%`;

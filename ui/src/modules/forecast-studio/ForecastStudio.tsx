@@ -175,7 +175,7 @@ export function ForecastStudio() {
             <button
               onClick={() => setSubmitted(true)}
               disabled={!canSubmit}
-              className="w-full rounded-md bg-accent px-4 py-2 text-sm font-medium text-surface transition-opacity disabled:cursor-not-allowed disabled:opacity-40"
+              className="w-full rounded-md bg-accent px-4 py-2 text-sm font-medium text-surface transition-colors enabled:hover:bg-accent/90 disabled:cursor-not-allowed disabled:bg-surface-raised disabled:text-fg-muted"
             >
               Evaluate eligibility
             </button>
@@ -198,53 +198,55 @@ export function ForecastStudio() {
               <EmptyState title="Select an issue date" description="Availability is inspected per timestamp." />
             )}
             {issueDate && point && (
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-line text-left text-[11px] uppercase tracking-wider text-fg-muted">
-                    <th className="py-2 pr-3">Feature</th>
-                    <th className="py-2 pr-3">Value</th>
-                    <th className="py-2">Availability</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr className="border-b border-line/60">
-                    <td className="py-2 pr-3">PM2.5 (ground)</td>
-                    <td className="py-2 pr-3 font-mono text-xs">
-                      {point.pm25 ?? "—"}
-                    </td>
-                    <td className="py-2">
-                      <StatusBadge
-                        status={point.pm25 !== null ? "PASS" : "UNAVAILABLE"}
-                        label={point.pm25 !== null ? "observed" : "missing"}
-                      />
-                    </td>
-                  </tr>
-                  <tr className="border-b border-line/60">
-                    <td className="py-2 pr-3">INSAT-3D AOD</td>
-                    <td className="py-2 pr-3 font-mono text-xs">
-                      {point.aod ?? "—"}
-                    </td>
-                    <td className="py-2">
-                      <StatusBadge
-                        status={point.sources.aod ? "PASS" : "UNAVAILABLE"}
-                        label={point.sources.aod ? "observed" : "not observed"}
-                      />
-                    </td>
-                  </tr>
-                  <tr className="border-b border-line/60">
-                    <td className="py-2 pr-3">MERRA-2</td>
-                    <td className="py-2 pr-3 font-mono text-xs">
-                      {point.t2m !== null ? `T2M ${point.t2m}` : "—"}
-                    </td>
-                    <td className="py-2">
-                      <StatusBadge
-                        status={point.sources.merra ? "PASS" : "UNAVAILABLE"}
-                        label={point.sources.merra ? "observed" : "not observed"}
-                      />
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-line text-left text-[11px] uppercase tracking-wider text-fg-muted">
+                      <th className="py-2 pr-3">Feature</th>
+                      <th className="py-2 pr-3">Value</th>
+                      <th className="py-2">Availability</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr className="border-b border-line/60">
+                      <td className="py-2 pr-3">PM2.5 (ground)</td>
+                      <td className="py-2 pr-3 font-mono text-xs">
+                        {point.pm25 ?? "—"}
+                      </td>
+                      <td className="py-2">
+                        <StatusBadge
+                          status={point.pm25 !== null ? "PASS" : "UNAVAILABLE"}
+                          label={point.pm25 !== null ? "observed" : "missing"}
+                        />
+                      </td>
+                    </tr>
+                    <tr className="border-b border-line/60">
+                      <td className="py-2 pr-3">INSAT-3D AOD</td>
+                      <td className="py-2 pr-3 font-mono text-xs">
+                        {point.aod ?? "—"}
+                      </td>
+                      <td className="py-2">
+                        <StatusBadge
+                          status={point.sources.aod ? "PASS" : "UNAVAILABLE"}
+                          label={point.sources.aod ? "observed" : "not observed"}
+                        />
+                      </td>
+                    </tr>
+                    <tr className="border-b border-line/60">
+                      <td className="py-2 pr-3">MERRA-2</td>
+                      <td className="py-2 pr-3 font-mono text-xs">
+                        {point.t2m !== null ? `T2M ${point.t2m}` : "—"}
+                      </td>
+                      <td className="py-2">
+                        <StatusBadge
+                          status={point.sources.merra ? "PASS" : "UNAVAILABLE"}
+                          label={point.sources.merra ? "observed" : "not observed"}
+                        />
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
             )}
           </Card>
 

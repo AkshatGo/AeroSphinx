@@ -137,6 +137,15 @@ describe("Research Lab", () => {
     ).toBeGreaterThan(0);
     expect(screen.getAllByText("[+0.30, +10.41]").length).toBeGreaterThan(0);
   });
+
+  it("reads the track summaries from the ablation artefact, not from prose", async () => {
+    renderWithProviders(<CommandCenter />);
+    // The mock pair for Track A is -0.65 [-1.14, -0.17]; the old copy quoted
+    // a Wilcoxon p-value typed into the component.
+    expect(await screen.findByText("-0.65 [-1.14, -0.17]")).toBeInTheDocument();
+    expect(screen.getByText("+4.70 [+0.30, +10.41]")).toBeInTheDocument();
+    expect(screen.queryByText(/0\.1495/)).not.toBeInTheDocument();
+  });
 });
 
 describe("Data Observatory", () => {
